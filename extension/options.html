@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AutoMute Options</title>
+    <style>
+        body: { 
+            padding: 10px; 
+            position: relative;
+        }
+    </style>
+    <script src="libs/jquery-3.1.1.min.js"></script>
+    <script src="options.js"></script>
+</head>
+<body>
+
+<div>
+    <label>
+        <input type="checkbox" id="checkEnabled" disabled/>
+        Automatically mute tabs based on current rules
+    </label>
+</div>
+
+<div style="padding-top: 16px">
+    <label>
+        In whitelist mode, any page in the list will not be muted, and all other pages
+        will be muted. In blacklist mode, any page in the list will be muted, and all
+        other pages will not be muted.
+        <div style="padding-left: 20px">
+            <input type="radio" name="blackWhite" id="radioWhite" value="white" disabled />
+            Use whitelist mode<br />
+            <input type="radio" name="blackWhite" id="radioBlack" value="black" disabled />
+            Use blacklist mode
+        </div>
+    </label>
+</div>
+
+<div style="padding-top: 16px">
+    <label>
+        Specify a list of whitelisted URLs that will not be muted automatically.
+        Put one URL on each line.
+        You can use the wildcard (*) character to indicate URL groups.
+        <textarea id="whitelist" rows="10" cols="80" disabled>
+        </textarea>
+    </label>
+</div>
+
+<div style="padding-top: 16px">
+    <label>
+        Specify a list of blacklisted URLs that will not be muted automatically.
+        Put one URL on each line.
+        You can use the wildcard (*) character to indicate URL groups.
+        <textarea id="blacklist" rows="10" cols="80" disabled>
+        </textarea>
+    </label>
+</div>
+
+<br/><br/>
+<div id="status" style="position: absolute; left: 10px; bottom: 12px; color: lightgray;"></div>
+<div align="right">
+    <button id="save" disabled>Save</button>
+</div>
+
+</body>
+</html>
