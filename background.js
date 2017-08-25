@@ -355,24 +355,29 @@
             return;
         }
 
+        let isFirefox = typeof InstallTrigger !== 'undefined';
+        let notificationOptions = {
+            type: 'basic',
+            iconUrl: 'Speaker_128.png'
+        };
+
+        if (!isFirefox) {
+            notificationOptions.requireInteraction = true;
+        }
+
         if (items.newFeatures < 20000) {
-            chrome.notifications.create('new-features-2.0', {
-                type: 'basic',
-                iconUrl: 'Speaker_128.png',
-                title: 'New features in AutoMute 2.0',
-                message: 'AutoMute has new features including a URL whitelist and keyboard shortcuts. Click the speaker button to explore.',
-                requireInteraction: true
-            }, notificationId => {});
+            notificationOptions.title = 'New features in AutoMute 2.0';
+            notificationOptions.message = 
+                'AutoMute has new features including a URL whitelist and keyboard shortcuts. Click the speaker button to explore.';
+            
+            chrome.notifications.create('new-features-2.0', notificationOptions, notificationId => {});
         }
 
         if (items.newFeatures < 20100) {
-            chrome.notifications.create('new-features-2.1', {
-                type: 'basic',
-                iconUrl: 'Speaker_128.png',
-                title: 'New features in AutoMute 2.1',
-                message: 'AutoMute has a new feature. You can now switch to blacklist mode, which will only mute the pages you specify.',
-                requireInteraction: true
-            }, notificationId => {});
+            notificationOptions.title = 'New features in AutoMute 2.1';
+            notificationOptions.message = 
+                'AutoMute has a new feature. You can now switch to blacklist mode, which will only mute the pages you specify.';
+            chrome.notifications.create('new-features-2.1', notificationOptions, notificationId => {});
         }
         chrome.storage.sync.set({ 'newFeatures': 20101 });
     });

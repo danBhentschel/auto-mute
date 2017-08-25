@@ -1,6 +1,8 @@
 (function () {
     'use strict';
 
+    var isFirefox = typeof InstallTrigger !== 'undefined';
+
     function muteAllTabs() {
         window.close();
         chrome.runtime.sendMessage({ command: 'mute-all' });
@@ -33,7 +35,11 @@
 
     function showOptions() {
         window.close();
-        chrome.tabs.create({ url: 'chrome://extensions/?options=' + chrome.runtime.id });
+        let url = 'chrome://extensions/?options=' + chrome.runtime.id;
+        if (isFirefox) {
+            url = 'about:addons';
+        }
+        chrome.tabs.create({ url: url });
     }
 
     $( document ).ready(() => {
@@ -42,7 +48,11 @@
         $('#autoMuteBrowserActionMuteTab').click(muteCurrentTab);
         $('#autoMuteBrowserActionListPage').click(listCurrentPage);
         $('#autoMuteBrowserActionListDomain').click(listDomain);
-        $('#autoMuteBrowserActionShowOptions').click(showOptions);
+        if (isFirefox) {
+            $('#autoMuteBrowserActionShowOptions').hide();
+        } else {
+            $('#autoMuteBrowserActionShowOptions').click(showOptions);
+        }
         chrome.runtime.sendMessage({ command: 'query-using-whitelist' }, response => {
             if (!!response) {
                 $('#autoMuteBrowserActionPageWhiteBlack').html(response.usingWhitelist ? 'White' : 'Black');

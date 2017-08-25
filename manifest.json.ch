@@ -5,12 +5,6 @@
   "description": "Automatically mutes each new tab the instant it is opened.",
   "version": "2.1.1",
 
-  "applications": {
-    "gecko": {
-      "id": "AutoMute@hentschels.com"
-    }
-  },
-
   "permissions": [
     "tabs",
     "storage",
@@ -23,8 +17,8 @@
 
   "browser_action": {
     "default_icon": {
-      "19": "Speaker_19w.png",
-      "38": "Speaker_38w.png"
+      "19": "Speaker_19.png",
+      "38": "Speaker_38.png"
     },
     "default_title": "AutoMute",
     "default_popup": "browserAction.html"
@@ -39,7 +33,7 @@
     },
     "mute-tab": {
       "suggested_key": {
-        "default": "Alt+Shift+U"
+        "default": "Alt+Shift+M"
       },
       "description": "Mute current tab"
     },
