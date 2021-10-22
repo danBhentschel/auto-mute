@@ -85,6 +85,12 @@
             expect(UrlMatcher.isDomainInList([pattern], url, false)).toBe(true);
         });
 
+        it('Should match complex page within domain', function () {
+            let url = 'http://uname:passwd@www.hentschels.com:8080/photos/index.html?foo=bar&bar=baz#anchor';
+            let pattern = 'http://www.hentschels.com/*';
+            expect(UrlMatcher.isDomainInList([pattern], url, false)).toBe(true);
+        });
+
     });
 
     describe('Domain pattern in list (regex)', function () {
@@ -126,6 +132,12 @@
 
         it('Should match page within domain', function () {
             let url = 'http://www.hentschels.com/photos/index.html';
+            let pattern = 'http://www.hentschels.com/.*';
+            expect(UrlMatcher.isDomainInList([pattern], url, true)).toBe(true);
+        });
+
+        it('Should match complex page within domain', function () {
+            let url = 'http://uname:passwd@www.hentschels.com:8080/photos/index.html?foo=bar&bar=baz#anchor';
             let pattern = 'http://www.hentschels.com/.*';
             expect(UrlMatcher.isDomainInList([pattern], url, true)).toBe(true);
         });
@@ -194,6 +206,12 @@
             expect(UrlMatcher.urlPatternMatch(pattern, url, false)).toBe(true);
         });
 
+        it('Should match complex URL', function () {
+            let url = 'http://uname:pass@www.hentschels.com.us:8080/the/path?foo=baz&x=y&meaning=42#link';
+            let pattern = 'http://www.hentschels.*:8*/*';
+            expect(UrlMatcher.urlPatternMatch(pattern, url, false)).toBe(true);
+        });
+
     });
 
     describe('Url pattern match (regex)', function () {
@@ -254,6 +272,12 @@
 
         it('Should match similar domain against wildcard with wildcard port', function () {
             let url = 'http://www.hentschels.com.us:8080';
+            let pattern = 'http://www.hentschels..*:8.*/.*';
+            expect(UrlMatcher.urlPatternMatch(pattern, url, true)).toBe(true);
+        });
+
+        it('Should match complex URL', function () {
+            let url = 'http://uname:pass@www.hentschels.com.us:8080/the/path?foo=baz&x=y&meaning=42#link';
             let pattern = 'http://www.hentschels..*:8.*/.*';
             expect(UrlMatcher.urlPatternMatch(pattern, url, true)).toBe(true);
         });
