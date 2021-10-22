@@ -34,12 +34,12 @@
 
     function muteIfShouldNoListUpdate(listInfo, tab) {
         shouldMute(listInfo, tab.url)
-          .then(mute => muteTab(tab.id, mute));
+            .then(mute => muteTab(tab.id, mute));
     }
 
     function updateTabIfListed(listInfo, tab) {
         isInList(listInfo.list, tab.url)
-          .then(inList => updateListedTab(tab.id, inList));
+            .then(inList => updateListedTab(tab.id, inList));
     }
 
     chrome.tabs.onReplaced.addListener((addedTabId, removedTabId) => {
@@ -55,12 +55,12 @@
                 if (tab) {
                     getListInfo(listInfo => {
                         isInList(listInfo.list, tab.url)
-                          .then(inList => {
-                            updateListedTab(addedTabId, inList);
-                            if (!tab.mutedInfo || tab.mutedInfo.muted != tabState[tab.id].muted) {
-                                muteTab(tab.id, tabState[tab.id].muted);
-                            }
-                          });
+                            .then(inList => {
+                                updateListedTab(addedTabId, inList);
+                                if (!tab.mutedInfo || tab.mutedInfo.muted != tabState[tab.id].muted) {
+                                    muteTab(tab.id, tabState[tab.id].muted);
+                                }
+                            });
                     });
                 } else {
                     console.log(chrome.runtime.lastError.message);
@@ -79,7 +79,7 @@
         if (changeInfo.url) {
             getListInfo(listInfo => {
                 isInList(listInfo.list, changeInfo.url)
-                  .then(inList => updateListedTab(tabId, inList));
+                    .then(inList => updateListedTab(tabId, inList));
             });
         }
     });
@@ -135,7 +135,7 @@
             });
         });
     }
-    
+
     function getListInfo(andCall) {
         getUsingWhitelist(usingWhitelist => {
             if (usingWhitelist) {
@@ -154,11 +154,6 @@
         chrome.storage.sync.get({ usingWhitelist: true }, items => {
             andCall(items.usingWhitelist);
         });
-    }
-
-    function stackTrace() {
-        var err = new Error();
-        return err.stack;
     }
 
     function getWhitelist(andCall) {
@@ -331,7 +326,7 @@
 
     chrome.commands.onCommand.addListener(handleCommand);
 
-    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => { 
+    chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         switch (request.command) {
             case 'query-current-muted':
                 getCurrentTab(tab => {
