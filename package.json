@@ -1,0 +1,25 @@
+{
+  "name": "auto-mute",
+  "version": "3.0.0",
+  "description": "Automatically mutes new browser tabs as soon as they are opened",
+  "dependencies": {},
+  "devDependencies": {
+    "jasmine-core": "^3.8.0",
+    "karma-chrome-launcher": "^3.1.0",
+    "karma-jasmine": "^4.0.1",
+    "karma": "^6.3.4"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/danBhentschel/auto-mute.git"
+  },
+  "author": "Dan Hentschel <dan@hentschels.com>",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/danBhentschel/auto-mute/issues"
+  },
+  "homepage": "https://github.com/danBhentschel/auto-mute#readme"
+}
