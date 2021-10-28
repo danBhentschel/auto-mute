@@ -84,7 +84,7 @@ class ExtensionOptions {
      * @param {string[]} blacklist 
      */
     setBlacklist(blacklist) {
-        chrome.storage.sync.set({
+        this.#chrome.storage.sync.set({
             blacklist: this.#listOfStringsToString(blacklist)
         });
     }

@@ -123,7 +123,7 @@ class TabTracker {
                         });
                 });
             } else {
-                console.log(chrome.runtime.lastError.message);
+                console.log(this.#chrome.runtime.lastError.message);
             }
         });
     }

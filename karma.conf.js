@@ -15,7 +15,6 @@ module.exports = function (config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'test/mocks/*.js',
       'extension/libs/*.js',
       'extension/**/*.js',
       'test/**/*Spec.js'
@@ -24,6 +23,10 @@ module.exports = function (config) {
 
     // list of files to exclude
     exclude: [
+      'extension/background.js',
+      'extension/browserAction.js',
+      'extension/notifications.js',
+      'extension/options.js',
     ],
 
 
