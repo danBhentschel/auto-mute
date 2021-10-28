@@ -3,7 +3,7 @@
 
   "name": "AutoMute",
   "description": "Automatically mutes each new tab the instant it is opened.",
-  "version": "2.2",
+  "version": "2.3",
 
   "permissions": [
     "tabs",
@@ -13,8 +13,13 @@
 
   "background": {
     "scripts": [
-        "background.js",
-        "notifications.js"
+      "notifications.js",
+      "ListInfo.js",
+      "ExtensionOptions.js",
+      "ListExpert.js",
+      "UrlMatcher.js",
+      "TabTracker.js",
+      "background.js"
     ]
   },
 
