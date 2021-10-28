@@ -7,12 +7,10 @@ class ListExpert {
     #urlMatcher;
 
     /**
-     * @param {Object} chromeInstance
-     * @param {ExtensionOptions} chromeInstance
+     * @param {ExtensionOptions} extensionOptions
      * @param {UrlMatcher} urlMatcher
      */
-    constructor(chromeInstance, extensionOptions, urlMatcher) {
-        this.#chrome = chromeInstance;
+    constructor(extensionOptions, urlMatcher) {
         this.#extensionOptions = extensionOptions;
         this.#urlMatcher = urlMatcher;
     }
