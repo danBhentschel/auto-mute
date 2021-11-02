@@ -60,7 +60,6 @@ class ExtensionOptions {
 
     /**
      * @param {string[]} list 
-     * @returns {Promise}
      */
     async setShouldNotMuteList(list) {
         return await new Promise(resolve => {
@@ -90,7 +89,6 @@ class ExtensionOptions {
 
     /**
      * @param {string[]} list 
-     * @returns {Promise}
      */
     async setShouldMuteList(list) {
         return await new Promise(resolve => {
@@ -98,30 +96,23 @@ class ExtensionOptions {
                 {
                     blacklist: this.#listOfStringsToString(list)
                 },
-                () => {
-                    resolve();
-                }
+                () => { resolve(); }
             );
         })
             .catch(err => { throw err; });
     }
 
-    /**
-     * @param {ListInfo} listInfo 
-     * @returns {Promise}
-     */
-    async setList(listInfo) {
-        if (listInfo.isListOfPagesToMute) {
-            await this.setShouldMuteList(listInfo.listOfPages);
-        } else {
-            await this.setShouldNotMuteList(listInfo.listOfPages);
-        }
-    }
-
-    switchListType() {
-        this.getUsingShouldNotMuteList(usingShouldNotMuteList => {
-            this.#chrome.storage.sync.set({ usingWhitelist: usingShouldNotMuteList });
-        });
+    async switchListType() {
+        const usingShouldNotMuteList = await this.getUsingShouldNotMuteList();
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.set(
+                {
+                    usingWhitelist: !usingShouldNotMuteList
+                },
+                () => { resolve(); }
+            );
+        })
+            .catch(err => { throw err; });
     }
 
     /**
