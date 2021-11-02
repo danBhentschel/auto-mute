@@ -20,23 +20,20 @@ class ListExpert {
      * @param {string} url 
      * @returns {Promise<boolean>} 
      */
-    isInList(list, url) {
-        return new Promise(resolve => {
-            this.#extensionOptions.getUseRegex(useRegex => {
-                const matches = list.filter(
-                    entry => this.#urlMatcher.urlPatternMatch(entry, useRegex, url)
-                );
-                resolve(matches.length > 0);
-            });
-        });
+    async isInList(list, url) {
+        const useRegex = await this.#extensionOptions.getUseRegex();
+        const matches = list.filter(
+            entry => this.#urlMatcher.urlPatternMatch(entry, useRegex, url)
+        );
+        return matches.length > 0;
     }
 
     /**
      * @param {string} url 
      * @returns {Promise<boolean>} 
      */
-    isExactMatchInList(url) {
-        return new Promise(resolve => {
+    async isExactMatchInList(url) {
+        return await new Promise(resolve => {
             this.#extensionOptions.getListInfo(listInfo => {
                 resolve(this.#urlMatcher.isExactUrlInList(listInfo.listOfPages, url));
             });
@@ -47,8 +44,8 @@ class ListExpert {
      * @param {string} url 
      * @returns {Promise<boolean>} 
      */
-    isDomainInList(url) {
-        return new Promise(resolve => {
+    async isDomainInList(url) {
+        return await new Promise(resolve => {
             this.#extensionOptions.getListInfo(listInfo => {
                 resolve(this.#urlMatcher.isDomainList(listInfo.listOfPages, url));
             });
@@ -56,55 +53,46 @@ class ListExpert {
     }
 
     /**
-     * @callback returnListInfo
-     * @param {ListInfo} listInfo
+     * @returns {Promise<ListInfo>}
      */
-    /**
-     * @param {returnListInfo} andCall 
-     */
-    getListInfo(andCall) {
-        this.#extensionOptions.getUsingWhitelist(usingWhitelist => {
-            if (usingWhitelist) {
-                this.#extensionOptions.getWhitelist(whitelist => {
-                    andCall(new ListInfo(false, whitelist));
+    async getListInfo() {
+        const usingShouldNotMuteList = await this.#extensionOptions.getUsingShouldNotMuteList();
+        return await new Promise(resolve => {
+            if (usingShouldNotMuteList) {
+                this.#extensionOptions.getShouldNotMuteList(list => {
+                    resolve(new ListInfo(false, list));
                 });
             } else {
-                this.#extensionOptions.getBlacklist(blacklist => {
-                    andCall(new ListInfo(true, blacklist));
+                this.#extensionOptions.getShouldMuteList(list => {
+                    resolve(new ListInfo(true, list));
                 });
             }
-        });
-    }
-
-    /**
-     * @callback returnIsInList
-     * @param {boolean} isInList
-     */
-    /**
-     * @param {string} url
-     * @param {returnIsInList} andCall 
-     */
-    addOrRemoveUrlInList(url, andCall) {
-        this.getListInfo(listInfo => {
-            const isInList = this.#urlMatcher.isExactUrlInList(listInfo.listOfPages, url);
-            this.#addOrRemoveEntryInList(listInfo, url, isInList);
-            andCall(!isInList);
-        });
+        })
+            .catch(err => { throw err });
     }
 
     /**
      * @param {string} url
-     * @param {returnIsInList} andCall 
+     * @returns {Promise<boolean>}
      */
-    addOrRemoveDomainInList(url, andCall) {
-        this.#extensionOptions.getUseRegex(useRegex => {
-            this.getListInfo(listInfo => {
-                const domainPattern = this.#urlMatcher.domainPattern(url, useRegex);
-                const isInList = this.#urlMatcher.isDomainInList(listInfo.listOfPages, url);
-                this.#addOrRemoveEntryInList(listInfo, domainPattern, isInList);
-                andCall(!isInList);
-            });
-        });
+    async addOrRemoveUrlInList(url) {
+        const listInfo = await this.getListInfo();
+        const isInList = this.#urlMatcher.isExactUrlInList(listInfo.listOfPages, url);
+        await this.#addOrRemoveEntryInList(listInfo, url, isInList);
+        return isInList;
+    }
+
+    /**
+     * @param {string} url
+     * @returns {Promise<boolean>}
+     */
+    async addOrRemoveDomainInList(url) {
+        const useRegex = await this.#extensionOptions.getUseRegex();
+        const listInfo = await this.getListInfo();
+        const domainPattern = this.#urlMatcher.domainPattern(url, useRegex);
+        const isInList = this.#urlMatcher.isDomainInList(listInfo.listOfPages, url);
+        await this.#addOrRemoveEntryInList(listInfo, domainPattern, isInList);
+        return listInfo;
     }
 
     /**
@@ -112,18 +100,18 @@ class ListExpert {
      * @param {string} entry 
      * @param {boolean} isInList 
      */
-    #addOrRemoveEntryInList(listInfo, entry, isInList) {
+    async #addOrRemoveEntryInList(listInfo, entry, isInList) {
         if (isInList) {
             const newListInfo = new ListInfo(
                 listInfo.isListOfPagesToMute,
                 listInfo.listOfPages.filter(_ => !this.#urlMatcher.urlsMatch(_, entry))
             );
-            this.#extensionOptions.setList(newListInfo);
+            await this.#extensionOptions.setList(newListInfo);
         } else {
             const list = listInfo.listOfPages;
             list.push(domainPattern);
             const newListInfo = new ListInfo(listInfo.isListOfPagesToMute, list);
-            this.#extensionOptions.setList(newListInfo);
+            await this.#extensionOptions.setList(newListInfo);
         }
     }
 }

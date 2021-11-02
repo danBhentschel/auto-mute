@@ -20,112 +20,71 @@ class TabTracker {
     }
 
     /**
-     * @param {number} tabId 
-     * @param {boolean} muted 
-     * @param {boolean} force 
-     */
-    setMuteOnTab(tabId, muted, force) {
-        this.#extensionOptions.getEnabled(enabled => {
-            if (enabled || !!force) {
-                this.#chrome.tabs.update(tabId, { muted: muted });
-            }
-            if (!this.#tabState[tabId]) { this.#tabState[tabId] = {}; }
-            this.#tabState[tabId].muted = muted;
-            console.log(`${tabId}: muted -> ${muted}`);
-        });
-    }
-
-    /**
      * @param {Object} tab 
      */
-    muteIfShould(tab) {
-        this.#listExpert.getListInfo(listInfo => {
-            this.#muteIfShouldNoListUpdate(listInfo, tab);
-            this.#updateTabIfListed(listInfo, tab);
-        });
+    async muteIfShould(tab) {
+        const listInfo = await this.#listExpert.getListInfo();
+        await this.#muteIfShouldNoListUpdate(listInfo, tab);
+        await this.#updateTabIfListed(listInfo, tab);
     }
 
     /**
      * @param {boolean} force - Specifies whether to ignore lists
      * @param {number} [excludeId] - Used when muting all but current tab
      */
-    muteAllTabs(force, excludeId) {
-        this.#listExpert.getListInfo(listInfo => {
-            this.#chrome.tabs.query({}, (tabs) => {
-                if (!tabs) { return; }
-                tabs.forEach((tab) => {
-                    if (tab.id === excludeId) return;
-                    if (force) {
-                        this.setMuteOnTab(tab.id, true, true);
-                    } else {
-                        this.#muteIfShouldNoListUpdate(listInfo, tab);
-                    }
-                    this.#updateTabIfListed(listInfo, tab);
-                });
-            });
-        });
-    }
-
-    toggleMuteCurrentTab() {
-        this.#getCurrentTab(tab => {
-            if (!!tab) {
-                this.setMuteOnTab(tab.id, !tab.mutedInfo.muted, true);
-            }
-        });
-    }
-
-    muteOtherTabs() {
-        this.#getCurrentTab(tab => {
-            if (!!tab) {
-                this.muteAllTabs(true, tab.id);
+    async muteAllTabs(force, excludeId) {
+        const listInfo = await this.#listExpert.getListInfo();
+        const tabs = await this.#getAllTabs();
+        if (!tabs) { return; }
+        for (const tab of tabs) {
+            if (tab.id === excludeId) continue;
+            if (force) {
+                await this.#setMuteOnTab(tab.id, true, true);
             } else {
-                console.warn('Could not determine current tab');
-                this.muteAllTabs(true);
+                await this.#muteIfShouldNoListUpdate(listInfo, tab);
             }
-        });
+            await this.#updateTabIfListed(listInfo, tab);
+        }
     }
 
-    applyMute() {
-        this.#extensionOptions.getEnabled(enabled => {
-            if (!enabled) return;
-            this.#listExpert.getListInfo(listInfo => {
-                this.#chrome.tabs.query({}, (tabs) => {
-                    if (!tabs) { return; }
-                    tabs.forEach((tab) => {
-                        this.#muteIfShouldNoListUpdate(listInfo, tab);
-                        this.#updateTabIfListed(listInfo, tab);
-                    });
-                });
-            });
-        });
+    async toggleMuteOnCurrentTab() {
+        const tab = await this.#getCurrentTab();
+        if (!!tab) {
+            await this.#setMuteOnTab(tab.id, !tab.mutedInfo.muted, true);
+        }
+    }
+
+    async muteOtherTabs() {
+        const tab = await this.#getCurrentTab();
+        if (!!tab) {
+            await this.muteAllTabs(true, tab.id);
+        } else {
+            console.warn('Could not determine current tab');
+            await this.muteAllTabs(true);
+        }
+    }
+
+    async applyMuteRulesToAllTabs() {
+        await this.muteAllTabs(false);
     }
 
     /**
      * @param {number} addedTabId 
      * @param {number} removedTabId 
      */
-    onTabReplaced(addedTabId, removedTabId) {
+    async onTabReplaced(addedTabId, removedTabId) {
         if (this.#tabState[removedTabId]) {
             console.log(`${removedTabId}: ${JSON.stringify(this.#tabState[removedTabId])}`);
             this.#tabState[addedTabId] = this.#tabState[removedTabId];
             delete this.#tabState[removedTabId];
         }
 
-        this.#chrome.tabs.get(addedTabId, tab => {
-            if (tab) {
-                this.#listExpert.getListInfo(listInfo => {
-                    this.#listExpert.isInList(listInfo.listOfPages, tab.url)
-                        .then(inList => {
-                            this.#updateListedTab(addedTabId, inList);
-                            if (!tab.mutedInfo || tab.mutedInfo.muted != tabState[tab.id].muted) {
-                                this.setMuteOnTab(tab.id, tabState[tab.id].muted);
-                            }
-                        });
-                });
-            } else {
-                console.log(this.#chrome.runtime.lastError.message);
-            }
-        });
+        const tab = await this.#getTabById(addedTabId);
+        if (tab) {
+            await this.muteIfShould(tab);
+        } else {
+            console.log(this.#chrome.runtime.lastError.message);
+        }
     }
 
     /**
@@ -143,123 +102,145 @@ class TabTracker {
      * @param {number} tabId 
      * @param {string} url 
      */
-    onTabUrlChanged(tabId, url) {
-        this.#listExpert.getListInfo(listInfo => {
-            this.#listExpert.isInList(listInfo.list, url)
-                .then(inList => this.#updateListedTab(tabId, inList));
-        });
+    async onTabUrlChanged(tabId, url) {
+        const listInfo = await this.#listExpert.getListInfo();
+        return await this.#listExpert.isInList(listInfo.listOfPages, url)
     }
 
-    addOrRemoveCurrentPageInList() {
-        this.#getCurrentTab(tab => {
-            if (!tab) return;
-            this.#listExpert.addOrRemoveUrlInList(
-                tab.url,
-                isInList => this.#updateListedTab(tab.id, isInList)
-            );
-        });
+    async addOrRemoveCurrentPageInList() {
+        const tab = await this.#getCurrentTab();
+        if (!tab) return;
+        await this.#listExpert.addOrRemoveUrlInList(
+            tab.url,
+            isInList => this.#updateListedTab(tab.id, isInList)
+        );
     }
 
-    addOrRemoveCurrentDomainInList() {
-        this.#getCurrentTab(tab => {
-            if (!tab) return;
-            this.#listExpert.addOrRemoveDomainInList(
-                tab.url,
-                isInList => this.#updateListedTab(tab.id, isInList)
-            );
-        });
+    async addOrRemoveCurrentDomainInList() {
+        const tab = await this.#getCurrentTab();
+        if (!tab) return;
+        await this.#listExpert.addOrRemoveDomainInList(
+            tab.url,
+            isInList => this.#updateListedTab(tab.id, isInList)
+        );
     }
 
     /**
-     * @callback returnIsMuted
-     * @param {boolean} isMuted
+     * @returns {Promise<boolean>}
      */
-    /**
-     * @param {returnIsMuted} andCall
-     */
-    isCurrentTabMuted(andCall) {
-        this.#getCurrentTab(tab => {
-            andCall(!!tab ? tab.mutedInfo.muted : false);
-        });
+    async isCurrentTabMuted(andCall) {
+        const tab = await this.#getCurrentTab();
+        return tab?.mutedInfo?.muted ?? false;
     }
 
     /**
-     * @param {returnIsInList} andCall
+     * @returns {Promise<boolean>}
      */
-    isDomainOfCurrentTabInList(andCall) {
-        this.#getCurrentTab(tab => {
-            this.#listExpert.isDomainInList(tab.url)
-                .then(isInList => andCall(isInList));
-        });
+    async isDomainOfCurrentTabInList() {
+        const tab = await this.#getCurrentTab();
+        return await this.#listExpert.isDomainInList(tab.url);
     }
 
     /**
-     * @callback returnIsInList
-     * @param {boolean} isInList
+     * @returns {Promise<boolean>}
      */
-    /**
-     * @param {returnIsInList} andCall
-     */
-    isCurrentTabInList(andCall) {
-        this.#getCurrentTab(tab => {
-            this.#listExpert.isExactMatchInList(tab.url)
-                .then(isInList => andCall(isInList));
-        });
+    async isCurrentTabInList() {
+        const tab = await this.#getCurrentTab();
+        return await this.#listExpert.isExactMatchInList(tab.url);
     }
 
     /**
-     * @param {ListInfo} listInfo 
-     * @param {Object} tab 
+     * @param {number} tabId 
+     * @param {boolean} muted 
+     * @param {boolean} force 
      */
-    #muteIfShouldNoListUpdate(listInfo, tab) {
-        this.#shouldMute(listInfo, tab.url)
-            .then(shouldMute => this.setMuteOnTab(tab.id, shouldMute));
+    async #setMuteOnTab(tabId, muted, force) {
+        const enabled = await this.#extensionOptions.getEnabled();
+        if (enabled || !!force) {
+            this.#chrome.tabs.update(tabId, { muted: muted });
+        }
+        if (!this.#tabState[tabId]) { this.#tabState[tabId] = {}; }
+        this.#tabState[tabId].muted = muted;
+        console.log(`${tabId}: muted -> ${muted}`);
     }
 
     /**
      * @param {ListInfo} listInfo 
      * @param {Object} tab 
      */
-    #updateTabIfListed(listInfo, tab) {
-        this.#listExpert.isInList(listInfo.listOfPages, tab.url)
-            .then(isInList => this.#updateListedTab(tab.id, isInList));
+    async #muteIfShouldNoListUpdate(listInfo, tab) {
+        const shouldMute = await this.#shouldMute(listInfo, tab.url)
+        await this.#setMuteOnTab(tab.id, shouldMute);
+    }
+
+    /**
+     * @param {ListInfo} listInfo 
+     * @param {Object} tab 
+     */
+    async #updateTabIfListed(listInfo, tab) {
+        const isInList = await this.#listExpert.isInList(listInfo.listOfPages, tab.url);
+        await this.#updateListedTab(tab.id, isInList);
     }
 
     /**
      * @param {number} tabId 
      * @param {boolean} isInList 
      */
-    #updateListedTab(tabId, isInList) {
-        this.#extensionOptions.getUsingWhitelist(usingWhitelist => {
-            if (!this.#tabState[tabId]) { this.#tabState[tabId] = { muted: usingWhitelist }; }
-            if (this.#tabState[tabId].isInList === isInList) return;
-            this.#tabState[tabId].isInList = isInList;
-            console.log(`${tabId}: isInList -> ${isInList}`);
-            if (isInList) {
-                this.#tabState[tabId].changeWhenLeavingListed = this.#tabState[tabId].muted == usingWhitelist;
-                this.setMuteOnTab(tabId, !usingWhitelist);
-            } else {
-                if (this.#tabState[tabId].changeWhenLeavingListed) {
-                    this.setMuteOnTab(tabId, usingWhitelist);
-                    this.#tabState[tabId].changeWhenLeavingListed = false;
-                }
+    async #updateListedTab(tabId, isInList) {
+        const usingShouldNotMuteList = await this.#extensionOptions.getUsingShouldNotMuteList();
+        if (!this.#tabState[tabId]) { this.#tabState[tabId] = { muted: !usingShouldNotMuteList }; }
+        if (this.#tabState[tabId].isInList === isInList) return;
+        this.#tabState[tabId].isInList = isInList;
+        console.log(`${tabId}: isInList -> ${isInList}`);
+        /*
+        if (isInList) {
+            this.#tabState[tabId].changeWhenLeavingListed = this.#tabState[tabId].muted !== usingShouldNotMuteList;
+            await this.#setMuteOnTab(tabId, usingShouldNotMuteList);
+        } else {
+            if (this.#tabState[tabId].changeWhenLeavingListed) {
+                await this.#setMuteOnTab(tabId, !usingShouldNotMuteList);
+                this.#tabState[tabId].changeWhenLeavingListed = false;
             }
-            console.log(`${tabId}: ${JSON.stringify(this.#tabState[tabId])}`);
-        });
+        }
+        */
+        console.log(`${tabId}: ${JSON.stringify(this.#tabState[tabId])}`);
     }
 
     /**
-     * @callback returnTab
-     * @param {Object} tab
+     * @param {number} tabId
+     * @returns {Promise<Object>}
      */
+    async #getTabById(tabId) {
+        return await new Promise(resolve => {
+            this.#chrome.tabs.get(tabId, tab => {
+                resolve(tab);
+            });
+        })
+            .catch(err => { throw err; });
+    }
+
     /**
-     * @param {returnTab} andCall 
+     * @returns {Promise<Object>}
      */
-    #getCurrentTab(andCall) {
-        this.#chrome.tabs.query({ active: true, lastFocusedWindow: true }, tabs => {
-            if (tabs.length) andCall(tabs[0]);
-            else andCall(null);
-        });
+    async #getCurrentTab() {
+        return await new Promise(resolve => {
+            this.#chrome.tabs.query({ active: true, lastFocusedWindow: true }, tabs => {
+                resolve(tabs?.length ? tabs[0] : null);
+            });
+        })
+            .catch(err => { throw err; });
+    }
+
+    /**
+     * @returns {Promise<List<Object>>}
+     */
+    async #getAllTabs() {
+        return await new Promise(resolve => {
+            this.#chrome.tabs.query({}, (tabs) => {
+                resolve(tabs);
+            });
+        })
+            .catch(err => { throw err; });
     }
 
     /**
@@ -268,7 +249,7 @@ class TabTracker {
      * @returns {Promise<boolean>}
      */
     async #shouldMute(listInfo, url) {
-        const inList = await this.#listExpert.isInList(listInfo.list, url);
+        const inList = await this.#listExpert.isInList(listInfo.listOfPages, url);
         return (listInfo.isListOfPagesToMute && inList)
             || (!listInfo.isListOfPagesToMute && !inList);
     }

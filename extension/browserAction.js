@@ -42,7 +42,7 @@
         chrome.tabs.create({ url: url });
     }
 
-    $( document ).ready(() => {
+    $(document).ready(() => {
         $('#autoMuteBrowserActionMuteAll').click(muteAllTabs);
         $('#autoMuteBrowserActionMuteOther').click(muteOtherTabs);
         $('#autoMuteBrowserActionMuteTab').click(muteCurrentTab);
@@ -53,10 +53,10 @@
         } else {
             $('#autoMuteBrowserActionShowOptions').click(showOptions);
         }
-        chrome.runtime.sendMessage({ command: 'query-using-whitelist' }, response => {
+        chrome.runtime.sendMessage({ command: 'query-using-should-mute-list' }, response => {
             if (!!response) {
-                $('#autoMuteBrowserActionPageWhiteBlack').html(response.usingWhitelist ? 'White' : 'Black');
-                $('#autoMuteBrowserActionDomainWhiteBlack').html(response.usingWhitelist ? 'White' : 'Black');
+                $('#autoMuteBrowserActionPageWhiteBlack').html(response.usingShouldMuteList ? 'White' : 'Black');
+                $('#autoMuteBrowserActionDomainWhiteBlack').html(response.usingShouldMuteList ? 'White' : 'Black');
             }
         });
 

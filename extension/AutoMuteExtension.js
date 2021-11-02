@@ -45,7 +45,6 @@ class AutoMuteExtension {
         });
 
         this.#tabTracker.muteAllTabs(false);
-
     }
 
     #handleMessage(command, sendResponse) {
@@ -56,9 +55,9 @@ class AutoMuteExtension {
                 });
                 return true;
 
-            case 'query-using-whitelist':
-                this.#extensionOptions.getUsingWhitelist(usingWhitelist => {
-                    sendResponse({ usingWhitelist: usingWhitelist });
+            case 'query-using-should-not-mute-list':
+                this.#extensionOptions.getUsingShouldNotMuteList(usingShouldNotMuteList => {
+                    sendResponse({ usingShouldNotMuteList: usingShouldNotMuteList });
                 });
                 return true;
 
@@ -91,7 +90,7 @@ class AutoMuteExtension {
                 this.#tabTracker.muteAllTabs(true);
                 break;
             case 'mute-tab':
-                this.#tabTracker.toggleMuteCurrentTab();
+                this.#tabTracker.toggleMuteOnCurrentTab();
                 break;
             case 'mute-other':
                 this.#tabTracker.muteOtherTabs();

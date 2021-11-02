@@ -27,15 +27,11 @@ describe('The Extension Enabled Option', function () {
         });
     }
 
-    it('Should return the enabled value from storage', function () {
+    it('Should return the enabled value from storage', async function () {
         const options = new ExtensionOptions(mockChrome);
         setValueForEnabledInStorage(false);
 
-        let enabled;
-        options.getEnabled(function (value) {
-            enabled = value;
-        });
-
+        const enabled = await options.getEnabled()
         expect(mockChrome.storage.sync.get).toHaveBeenCalled();
         expect(enabled).toBeFalse();
     });

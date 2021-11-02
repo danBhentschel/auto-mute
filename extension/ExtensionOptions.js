@@ -11,98 +11,116 @@ class ExtensionOptions {
     }
 
     /**
-     * @callback returnEnabledValue
-     * @param {boolean} enabled
+     * @returns {Promise<boolean>}
      */
-    /**
-     * @param {returnEnabledValue} andCall 
-     */
-    getEnabled(andCall) {
-        this.#chrome.storage.sync.get({ enabled: true }, items => {
-            andCall(items.enabled);
-        });
+    async getEnabled() {
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.get({ enabled: true }, items => {
+                resolve(items.enabled);
+            });
+        })
+            .catch(err => { throw err; });
     }
 
     /**
-     * @callback returnUseRegexValue
-     * @param {boolean} useRegex
+     * @returns {Promise<boolean>}
      */
-    /**
-     * @param {returnUseRegexValue} andCall 
-     */
-    getUseRegex(andCall) {
-        this.#chrome.storage.sync.get({ useRegex: false }, items => {
-            andCall(items.useRegex);
-        });
+    async getUseRegex() {
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.get({ useRegex: false }, items => {
+                resolve(items.useRegex);
+            });
+        })
+            .catch(err => { throw err; });
     }
 
     /**
-     * @callback returnUsingWhitelistValue
-     * @param {boolean} usingWhitelist
+     * @returns {Promise<boolean>}
      */
-    /**
-     * @param {returnUsingWhitelistValue} andCall 
-     */
-    getUsingWhitelist(andCall) {
-        this.#chrome.storage.sync.get({ usingWhitelist: true }, items => {
-            andCall(items.usingWhitelist);
-        });
+    async getUsingShouldNotMuteList() {
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.get({ usingWhitelist: true }, items => {
+                resolve(items.usingWhitelist);
+            });
+        })
+            .catch(err => { throw err; });
     }
 
     /**
-     * @callback returnListValue
-     * @param {string[]} list
+     * @returns {Promise<string[]>}
      */
-    /**
-     * @param {returnListValue} andCall 
-     */
-    getWhitelist(andCall) {
-        this.#chrome.storage.sync.get({ whitelist: '' }, items => {
-            andCall(this.#stringToListOfStrings(items.whitelist));
-        });
+    async getShouldNotMuteList() {
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.get({ whitelist: '' }, items => {
+                resolve(this.#stringToListOfStrings(items.whitelist));
+            });
+        })
+            .catch(err => { throw err; });
     }
 
     /**
-     * @param {string[]} whitelist 
+     * @param {string[]} list 
+     * @returns {Promise}
      */
-    setWhitelist(whitelist) {
-        this.#chrome.storage.sync.set({
-            whitelist: this.#listOfStringsToString(whitelist)
-        });
+    async setShouldNotMuteList(list) {
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.set(
+                {
+                    whitelist: this.#listOfStringsToString(list)
+                },
+                () => {
+                    resolve();
+                }
+            );
+        })
+            .catch(err => { throw err; });
     }
 
     /**
-     * @param {returnListValue} andCall 
+     * @returns {Promise<string[]>}
      */
-    getBlacklist(andCall) {
-        this.#chrome.storage.sync.get({ blacklist: '' }, items => {
-            andCall(this.#stringToListOfStrings(items.blacklist));
-        });
+    async getShouldMuteList() {
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.get({ blacklist: '' }, items => {
+                resolve(this.#stringToListOfStrings(items.blacklist));
+            });
+        })
+            .catch(err => { throw err; });
     }
 
     /**
-     * @param {string[]} blacklist 
+     * @param {string[]} list 
+     * @returns {Promise}
      */
-    setBlacklist(blacklist) {
-        this.#chrome.storage.sync.set({
-            blacklist: this.#listOfStringsToString(blacklist)
-        });
+    async setShouldMuteList(list) {
+        return await new Promise(resolve => {
+            this.#chrome.storage.sync.set(
+                {
+                    blacklist: this.#listOfStringsToString(list)
+                },
+                () => {
+                    resolve();
+                }
+            );
+        })
+            .catch(err => { throw err; });
     }
 
     /**
      * @param {ListInfo} listInfo 
+     * @returns {Promise}
      */
-    setList(listInfo) {
+    async setList(listInfo) {
         if (listInfo.isListOfPagesToMute) {
-            this.setBlacklist(listInfo.listOfPages);
+            await this.setShouldMuteList(listInfo.listOfPages);
         } else {
-            this.setWhitelist(listInfo.listOfPages);
+            await this.setShouldNotMuteList(listInfo.listOfPages);
         }
     }
 
     switchListType() {
-        this.getUsingWhitelist(usingWhitelist => {
-            this.#chrome.storage.sync.set({ usingWhitelist: !usingWhitelist });
+        this.getUsingShouldNotMuteList(usingShouldNotMuteList => {
+            this.#chrome.storage.sync.set({ usingWhitelist: usingShouldNotMuteList });
         });
     }
 
