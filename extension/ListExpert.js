@@ -59,24 +59,26 @@ class ListExpert {
 
     /**
      * @param {string} url
-     * @returns {Promise<ListInfo>}
+     * @returns {Promise<boolean>}
      */
     async addOrRemoveUrlInList(url) {
         const listInfo = await this.getListInfo();
         const isInList = this.#urlMatcher.isExactUrlInList(listInfo.listOfPages, url);
-        return await this.#addOrRemoveEntryInList(listInfo, url, isInList);
+        await this.#addOrRemoveEntryInList(listInfo, url, isInList);
+        return !isInList;
     }
 
     /**
      * @param {string} url
-     * @returns {Promise<ListInfo>}
+     * @returns {Promise<boolean>}
      */
     async addOrRemoveDomainInList(url) {
         const useRegex = await this.#extensionOptions.getUseRegex();
         const listInfo = await this.getListInfo();
         const domainPattern = this.#urlMatcher.domainPattern(url, useRegex);
         const isInList = this.#urlMatcher.isDomainInList(listInfo.listOfPages, domainPattern);
-        return await this.#addOrRemoveEntryInList(listInfo, domainPattern, isInList);
+        await this.#addOrRemoveEntryInList(listInfo, domainPattern, isInList);
+        return !isInList;
     }
 
     /**

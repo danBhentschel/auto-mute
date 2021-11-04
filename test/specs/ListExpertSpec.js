@@ -227,9 +227,8 @@ describe('ListExpert ->', function () {
             const result = await expert.addOrRemoveUrlInList('urlD');
             const newListInfo = await expert.getListInfo();
 
-            expect(result.listOfPages.length).toBe(4);
+            expect(result).toBeTrue();
             expect(newListInfo.listOfPages.length).toBe(4);
-            expect(result.listOfPages).toContain('urlD');
             expect(newListInfo.listOfPages).toContain('urlD');
         });
 
@@ -242,9 +241,8 @@ describe('ListExpert ->', function () {
             const result = await expert.addOrRemoveUrlInList('urlD');
             const newListInfo = await expert.getListInfo();
 
-            expect(result.listOfPages.length).toBe(3);
+            expect(result).toBeFalse();
             expect(newListInfo.listOfPages.length).toBe(3);
-            expect(result.listOfPages).not.toContain('urlD');
             expect(newListInfo.listOfPages).not.toContain('urlD');
         });
 
@@ -262,9 +260,8 @@ describe('ListExpert ->', function () {
             const result = await expert.addOrRemoveDomainInList('urlD');
             const newListInfo = await expert.getListInfo();
 
-            expect(result.listOfPages.length).toBe(4);
+            expect(result).toBeTrue();
             expect(newListInfo.listOfPages.length).toBe(4);
-            expect(result.listOfPages).toContain('domD');
             expect(newListInfo.listOfPages).toContain('domD');
         });
 
@@ -278,9 +275,8 @@ describe('ListExpert ->', function () {
             const result = await expert.addOrRemoveDomainInList('urlD');
             const newListInfo = await expert.getListInfo();
 
-            expect(result.listOfPages.length).toBe(3);
+            expect(result).toBeFalse();
             expect(newListInfo.listOfPages.length).toBe(3);
-            expect(result.listOfPages).not.toContain('domD');
             expect(newListInfo.listOfPages).not.toContain('domD');
         });
 

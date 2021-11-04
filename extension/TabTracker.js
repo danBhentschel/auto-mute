@@ -79,22 +79,7 @@ class TabTracker {
             delete this.#tabState[removedTabId];
         }
 
-        const tab = await this.#getTabById(addedTabId);
-        if (tab) {
-            await this.muteIfShould(tab);
-        } else {
-            console.log(this.#chrome.runtime.lastError.message);
-        }
-    }
-
-    /**
-     * @param {number} tabId 
-     * @param {boolean} isMuted 
-     */
-    updateTabMutedState(tabId, isMuted) {
-        if (!this.#tabState[tabId]) { this.#tabState[tabId] = {}; }
-        this.#tabState[tabId].muted = isMuted;
-        console.log(tabId + ': muted -> ' + isMuted);
+        await this.#muteIfShouldById(addedTabId);
     }
 
     /**
@@ -102,33 +87,38 @@ class TabTracker {
      * @param {number} tabId 
      * @param {string} url 
      */
-    async onTabUrlChanged(tabId, url) {
-        const listInfo = await this.#listExpert.getListInfo();
-        return await this.#listExpert.isInList(listInfo.listOfPages, url)
+    async onTabUrlChanged(tabId) {
+        await this.#muteIfShouldById(tabId);
+    }
+
+    /**
+     * @param {number} tabId 
+     * @param {boolean} isMuted 
+     */
+    onTabMutedByUser(tabId, isMuted) {
+        if (!this.#tabState[tabId]) { this.#tabState[tabId] = {}; }
+        this.#tabState[tabId].muted = isMuted;
+        console.log(tabId + ': muted -> ' + isMuted);
     }
 
     async addOrRemoveCurrentPageInList() {
         const tab = await this.#getCurrentTab();
         if (!tab) return;
-        await this.#listExpert.addOrRemoveUrlInList(
-            tab.url,
-            isInList => this.#updateListedTab(tab.id, isInList)
-        );
+        const isInList = await this.#listExpert.addOrRemoveUrlInList(tab.url);
+        await this.#updateListedTab(tab.id, isInList)
     }
 
     async addOrRemoveCurrentDomainInList() {
         const tab = await this.#getCurrentTab();
         if (!tab) return;
-        await this.#listExpert.addOrRemoveDomainInList(
-            tab.url,
-            isInList => this.#updateListedTab(tab.id, isInList)
-        );
+        const isInList = await this.#listExpert.addOrRemoveDomainInList(tab.url);
+        await this.#updateListedTab(tab.id, isInList)
     }
 
     /**
      * @returns {Promise<boolean>}
      */
-    async isCurrentTabMuted(andCall) {
+    async isCurrentTabMuted() {
         const tab = await this.#getCurrentTab();
         return tab?.mutedInfo?.muted ?? false;
     }
@@ -254,4 +244,15 @@ class TabTracker {
             || (!listInfo.isListOfPagesToMute && !inList);
     }
 
+    /**
+     * @param {number} tabId
+     */
+    async #muteIfShouldById(tabId) {
+        const tab = await this.#getTabById(tabId);
+        if (tab) {
+            await this.muteIfShould(tab);
+        } else {
+            console.log(this.#chrome.runtime.lastError.message);
+        }
+    }
 }

@@ -47,7 +47,9 @@ describe('TabTracker ->', function () {
 
         listExpert = {
             getListInfo: async function () { },
-            isInList: async function () { }
+            isInList: async function () { },
+            addOrRemoveUrlInList: async function () { },
+            addOrRemoveDomainInList: async function () { },
         };
 
         spyOn(mockChrome.tabs, 'update').and.callFake(function (tabId, state) {
@@ -943,6 +945,385 @@ describe('TabTracker ->', function () {
                     await tabTracker.onTabReplaced(tab.id);
 
                     expect(getTabMuteState(tab.id)).toBeFalse();
+                });
+
+            });
+
+        });
+
+    });
+
+    describe('onTabUrlChanged() ->', function () {
+
+        let tab = {};
+
+        beforeEach(function () {
+            tab = {
+                id: 42,
+                url: 'http://www.youtube.com',
+                mutedInfo: { muted: false }
+            };
+
+            tabs.push(tab);
+
+
+            spyOn(mockChrome.tabs, 'get').and.callFake(function (tabId, callback) {
+                callback(getTab(tabId));
+            });
+        });
+
+        describe('when the extension is enabled ->', function () {
+
+            beforeEach(function () {
+                setValueForEnabledInOptions(true);
+            });
+
+            describe('and using a "should mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(true, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(false);
+                });
+
+                it('should mute the specified tab if the page is in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeTrue();
+                });
+
+                it('should not mute the specified tab if the page is not in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(false);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeFalse();
+                });
+
+            });
+
+            describe('and using a "should not mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(false, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(true);
+                });
+
+                it('should not mute the specified tab if the page is in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeFalse();
+                });
+
+                it('should mute the specified tab if the page is not in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(false);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeTrue();
+                });
+
+            });
+
+        });
+
+        describe('when the extension is disabled ->', function () {
+
+            beforeEach(function () {
+                setValueForEnabledInOptions(false);
+            });
+
+            describe('and using a "should mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(true, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(false);
+                });
+
+                it('should not mute the specified tab if the page is in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeFalse();
+                });
+
+                it('should not mute the specified tab if the page is not in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(false);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeFalse();
+                });
+
+            });
+
+            describe('and using a "should not mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(false, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(true);
+                });
+
+                it('should not mute the specified tab if the page is in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeFalse();
+                });
+
+                it('should not mute the specified tab if the page is not in the list', async function () {
+                    spyOn(listExpert, 'isInList').and.resolveTo(false);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.onTabUrlChanged(tab.id);
+
+                    expect(getTabMuteState(tab.id)).toBeFalse();
+                });
+
+            });
+
+        });
+
+    });
+
+    describe('addOrRemoveCurrentPageInList() ->', function () {
+
+        let tab = {};
+
+        beforeEach(function () {
+            tab = {
+                id: 42,
+                url: 'http://www.youtube.com',
+                mutedInfo: { muted: false }
+            };
+
+            tabs.push(tab);
+
+
+            spyOn(mockChrome.tabs, 'query').and.callFake(function (queryInfo, callback) {
+                if (!!queryInfo && queryInfo.active) {
+                    callback([tabs[0]]);
+                } else {
+                    callback(tabs);
+                }
+            });
+        });
+
+        describe('when the extension is enabled ->', function () {
+
+            beforeEach(function () {
+                setValueForEnabledInOptions(true);
+            });
+
+            describe('and using a "should mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(true, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(false);
+                });
+
+                it('should add the current tab URL to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveUrlInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentPageInList();
+
+                    expect(listExpert.addOrRemoveUrlInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveUrlInList.calls.argsFor(0)).toEqual([tab.url]);
+                });
+
+            });
+
+            describe('and using a "should not mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(false, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(true);
+                });
+
+                it('should add the current tab URL to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveUrlInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentPageInList();
+
+                    expect(listExpert.addOrRemoveUrlInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveUrlInList.calls.argsFor(0)).toEqual([tab.url]);
+                });
+
+            });
+
+        });
+
+        describe('when the extension is disabled ->', function () {
+
+            beforeEach(function () {
+                setValueForEnabledInOptions(false);
+            });
+
+            describe('and using a "should mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(true, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(false);
+                });
+
+                it('should add the current tab URL to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveUrlInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentPageInList();
+
+                    expect(listExpert.addOrRemoveUrlInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveUrlInList.calls.argsFor(0)).toEqual([tab.url]);
+                });
+
+            });
+
+            describe('and using a "should not mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(false, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(true);
+                });
+
+                it('should add the current tab URL to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveUrlInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentPageInList();
+
+                    expect(listExpert.addOrRemoveUrlInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveUrlInList.calls.argsFor(0)).toEqual([tab.url]);
+                });
+
+            });
+
+        });
+
+    });
+
+    describe('addOrRemoveCurrentDomainInList() ->', function () {
+
+        let tab = {};
+
+        beforeEach(function () {
+            tab = {
+                id: 42,
+                url: 'http://www.youtube.com',
+                mutedInfo: { muted: false }
+            };
+
+            tabs.push(tab);
+
+
+            spyOn(mockChrome.tabs, 'query').and.callFake(function (queryInfo, callback) {
+                if (!!queryInfo && queryInfo.active) {
+                    callback([tabs[0]]);
+                } else {
+                    callback(tabs);
+                }
+            });
+        });
+
+        describe('when the extension is enabled ->', function () {
+
+            beforeEach(function () {
+                setValueForEnabledInOptions(true);
+            });
+
+            describe('and using a "should mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(true, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(false);
+                });
+
+                it('should add the current tab domain to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveDomainInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentDomainInList();
+
+                    expect(listExpert.addOrRemoveDomainInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveDomainInList.calls.argsFor(0)).toEqual([tab.url]);
+                });
+
+            });
+
+            describe('and using a "should not mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(false, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(true);
+                });
+
+                it('should add the current tab domain to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveDomainInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentDomainInList();
+
+                    expect(listExpert.addOrRemoveDomainInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveDomainInList.calls.argsFor(0)).toEqual([tab.url]);
+                });
+
+            });
+
+        });
+
+        describe('when the extension is disabled ->', function () {
+
+            beforeEach(function () {
+                setValueForEnabledInOptions(false);
+            });
+
+            describe('and using a "should mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(true, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(false);
+                });
+
+                it('should add the current tab domain to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveDomainInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentDomainInList();
+
+                    expect(listExpert.addOrRemoveDomainInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveDomainInList.calls.argsFor(0)).toEqual([tab.url]);
+                });
+
+            });
+
+            describe('and using a "should not mute" list ->', function () {
+
+                beforeEach(function () {
+                    spyOn(listExpert, 'getListInfo').and.resolveTo(new ListInfo(false, []));
+                    spyOn(extensionOptions, 'getUsingShouldNotMuteList').and.resolveTo(true);
+                });
+
+                it('should add the current tab domain to the list', async function () {
+                    spyOn(listExpert, 'addOrRemoveDomainInList').and.resolveTo(true);
+
+                    const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
+                    await tabTracker.addOrRemoveCurrentDomainInList();
+
+                    expect(listExpert.addOrRemoveDomainInList).toHaveBeenCalled();
+                    expect(listExpert.addOrRemoveDomainInList.calls.argsFor(0)).toEqual([tab.url]);
                 });
 
             });
