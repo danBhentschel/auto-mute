@@ -6,14 +6,14 @@ icon in the top-right corner of the browser.
 
 ```mermaid
 sequenceDiagram
-   actor User
+   actor user as User
    participant browserAction as Icon Menu (browserAction)
    participant runtime as chrome.runtime
    participant tabs as chrome.tabs
    participant extension as AutoMuteExtension
    participant tracker as TabTracker
 
-    User->>browserAction: Mute / Unmute current tab
+    user->>browserAction: Mute / Unmute current tab
     browserAction->>runtime: sendMessage({ command: 'mute-tab' })
     runtime->>extension: call onMessage listener
     extension->>tracker: toggleMuteOnCurrentTab()
