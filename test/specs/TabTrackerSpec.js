@@ -241,6 +241,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(false);
 
+                    expect(extensionOptions.getEnabled).toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeTrue();
                     expect(getTabMuteState(tabs[1].id)).toBeFalse();
                 });
@@ -249,6 +250,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(true);
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeTrue();
                     expect(getTabMuteState(tabs[1].id)).toBeTrue();
                 });
@@ -257,6 +259,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(false, tabs[0].id);
 
+                    expect(extensionOptions.getEnabled).toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeFalse();
                     expect(getTabMuteState(tabs[1].id)).toBeFalse();
                 });
@@ -274,6 +277,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(false);
 
+                    expect(extensionOptions.getEnabled).toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeFalse();
                     expect(getTabMuteState(tabs[1].id)).toBeTrue();
                 });
@@ -282,6 +286,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(true);
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeTrue();
                     expect(getTabMuteState(tabs[1].id)).toBeTrue();
                 });
@@ -291,6 +296,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(false, tabs[1].id);
 
+                    expect(extensionOptions.getEnabled).toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeFalse();
                     expect(getTabMuteState(tabs[1].id)).toBeFalse();
                 });
@@ -315,6 +321,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(false);
 
+                    expect(extensionOptions.getEnabled).toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeFalse();
                     expect(getTabMuteState(tabs[1].id)).toBeFalse();
                 });
@@ -323,6 +330,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(true);
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeTrue();
                     expect(getTabMuteState(tabs[1].id)).toBeTrue();
                 });
@@ -340,6 +348,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(false);
 
+                    expect(extensionOptions.getEnabled).toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeFalse();
                     expect(getTabMuteState(tabs[1].id)).toBeFalse();
                 });
@@ -348,6 +357,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.muteAllTabs(true);
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tabs[0].id)).toBeTrue();
                     expect(getTabMuteState(tabs[1].id)).toBeTrue();
                 });
@@ -395,6 +405,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeTrue();
                 });
 
@@ -405,6 +416,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeFalse();
                 });
 
@@ -414,6 +426,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeTrue();
                 });
 
@@ -424,6 +437,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeFalse();
                 });
 
@@ -442,6 +456,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeTrue();
                 });
 
@@ -452,6 +467,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeFalse();
                 });
 
@@ -461,6 +477,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeTrue();
                 });
 
@@ -471,6 +488,7 @@ describe('TabTracker ->', function () {
                     const tabTracker = new TabTracker(mockChrome, extensionOptions, listExpert);
                     await tabTracker.toggleMuteOnCurrentTab();
 
+                    expect(extensionOptions.getEnabled).not.toHaveBeenCalled();
                     expect(getTabMuteState(tab.id)).toBeFalse();
                 });
 

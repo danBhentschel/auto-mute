@@ -145,8 +145,8 @@ class TabTracker {
      * @param {boolean} force 
      */
     async #setMuteOnTab(tabId, muted, force) {
-        const enabled = await this.#extensionOptions.getEnabled();
-        if (enabled || !!force) {
+        const shouldMute = !!force || await this.#extensionOptions.getEnabled();
+        if (shouldMute) {
             this.#chrome.tabs.update(tabId, { muted: muted });
         }
         if (!this.#tabState[tabId]) { this.#tabState[tabId] = {}; }

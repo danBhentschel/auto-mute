@@ -70,6 +70,10 @@ module.exports = function (config) {
       }
     },
 
+    client: {
+      captureConsole: false
+    },
+
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
     singleRun: false,
