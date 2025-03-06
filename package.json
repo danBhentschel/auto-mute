@@ -2,11 +2,9 @@
   "name": "auto-mute",
   "version": "3.0.0",
   "description": "Automatically mutes new browser tabs as soon as they are opened",
+  "type": "module",
   "devDependencies": {
-    "jasmine-core": "^3.8.0",
-    "karma": "^6.3.4",
-    "karma-chrome-launcher": "^3.1.0",
-    "karma-jasmine": "^4.0.1"
+    "jest": "^29.7.0"
   },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

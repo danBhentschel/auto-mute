@@ -1,17 +1,31 @@
 {
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "pwa-chrome",
-            "request": "attach",
-            "name": "Attach Karma Chrome",
-            "address": "localhost",
-            "restart": true,
-            "port": 9333,
-            "pathMapping": {
-                "/": "${workspaceRoot}/",
-                "/base/": "${workspaceRoot}/"
-            }
-        }
-    ]
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug Single Jest Test",
+      "type": "node",
+      "request": "launch",
+      "runtimeVersion": "20.18.0",
+      "program": "${workspaceFolder}/node_modules/.bin/jest",
+      "args": [
+        "--runInBand",
+        "--watchAll=false",
+        "--testNamePattern",
+        "${input:testNamePattern}"
+      ],
+      "env": {
+        "NODE_OPTIONS": "--experimental-vm-modules"
+      },
+      "skipFiles": ["<node_internals>/**", "**/node_modules/**"],
+      "console": "integratedTerminal",
+      "internalConsoleOptions": "neverOpen"
+    }
+  ],
+  "inputs": [
+    {
+      "id": "testNamePattern",
+      "type": "promptString",
+      "description": "Enter the test name pattern (regex) to run"
+    }
+  ]
 }
