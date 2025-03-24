@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { beforeEach, describe, jest } from "@jest/globals";
 
 import fs from "fs";
 import path from "path";
@@ -97,6 +97,11 @@ describe("service_worker.js", () => {
           tab.mutedInfo = {};
         }
         tab.mutedInfo.muted = updateProperties.muted;
+        if (tab.mutedInfo.muted) {
+          tab.mutedInfo.extensionId = extensionId;
+        } else {
+          delete tab.mutedInfo.extensionId;
+        }
       },
     },
     commands: {
@@ -171,8 +176,24 @@ describe("service_worker.js", () => {
     );
     document.body.innerHTML = browserActionHtml.toString();
 
+    // We want to intercept the DOMContentLoaded event
+    // because it can result in multiple listeners being
+    // registered across multiple tests
+    const domContentEventListeners = [];
+    const savedAddEventListener = document.addEventListener;
+
+    document.addEventListener = (event, listener) => {
+      if (event === "DOMContentLoaded") {
+        domContentEventListeners.push(listener);
+      } else {
+        savedAddEventListener(event, listener);
+      }
+    };
+
     await import("../extension/browserAction.js");
-    document.dispatchEvent(new Event("DOMContentLoaded"));
+    for (const listener of domContentEventListeners) {
+      listener();
+    }
     // Wait for the content loaded event to be processed
     await new Promise(process.nextTick);
   }
@@ -351,226 +372,888 @@ google.com",
     expect(newTab.mutedInfo.muted).toBe(true);
   });
 
-  it("should unmute a muted tab when the page is added to the allow list", async () => {
-    storage.usingAllowList = true;
-    storage.allowOrBlockList = "";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
-    await loadBrowserAction();
+  describe("'Mute/Unmute current tab' menu item", () => {
+    it("should unmute a muted tab when clicked", async () => {
+      storage.usingAllowList = true;
+      storage.allowOrBlockList = "";
+      tabs = [
+        {
+          id: 1,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: true,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 2,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: false,
+          lastFocusedWindow: true,
+        },
+      ];
+      await startExtension();
+      await loadBrowserAction();
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(true);
+      // Sanity check
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+      expect(tabs[1].mutedInfo.muted).toBe(true);
 
-    document
-      .getElementById("autoMuteBrowserActionListPage")
-      .dispatchEvent(new MouseEvent("click"));
+      document
+        .getElementById("autoMuteBrowserActionMuteTab")
+        .dispatchEvent(new MouseEvent("click"));
 
-    // Wait for the click event to be processed
-    await new Promise(process.nextTick);
+      // Wait for the click event to be processed
+      await new Promise(process.nextTick);
 
-    expect(storage.allowOrBlockList).toBe("https://www.youtube.com/");
+      expect(tabs[0].mutedInfo.muted).toBe(false);
+      expect(tabs[1].mutedInfo.muted).toBe(true);
+    });
 
-    expect(tabs[0].mutedInfo.muted).toBe(false);
+    it("should mute an unmuted tab when clicked", async () => {
+      storage.usingAllowList = true;
+      storage.allowOrBlockList = "https://www.youtube.com/";
+      tabs = [
+        {
+          id: 1,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: true,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 2,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: false,
+          lastFocusedWindow: true,
+        },
+      ];
+      await startExtension();
+      await loadBrowserAction();
+
+      // Sanity check
+      expect(tabs[0].mutedInfo.muted).toBe(false);
+      expect(tabs[1].mutedInfo.muted).toBe(false);
+
+      document
+        .getElementById("autoMuteBrowserActionMuteTab")
+        .dispatchEvent(new MouseEvent("click"));
+
+      // Wait for the click event to be processed
+      await new Promise(process.nextTick);
+
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+      expect(tabs[1].mutedInfo.muted).toBe(false);
+    });
+
+    it("should show 'Mute' when the tab is not muted", async () => {
+      storage.usingAllowList = true;
+      storage.allowOrBlockList = "https://www.youtube.com/";
+      tabs = [
+        {
+          id: 1,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: true,
+          lastFocusedWindow: true,
+        },
+      ];
+      await startExtension();
+      await loadBrowserAction();
+
+      // Sanity check
+      expect(tabs[0].mutedInfo.muted).toBe(false);
+
+      expect(
+        document.getElementById("autoMuteBrowserActionMuteTabMuteUnmute")
+          .innerHTML
+      ).toBe("Mute");
+    });
+
+    it("should show 'Unmute' when the tab is muted", async () => {
+      storage.usingAllowList = true;
+      storage.allowOrBlockList = "";
+      tabs = [
+        {
+          id: 1,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: true,
+          lastFocusedWindow: true,
+        },
+      ];
+      await startExtension();
+      await loadBrowserAction();
+
+      // Sanity check
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+
+      expect(
+        document.getElementById("autoMuteBrowserActionMuteTabMuteUnmute")
+          .innerHTML
+      ).toBe("Unmute");
+    });
+
+    it("should show the correct shortcut keys", async () => {
+      await startExtension();
+      await loadBrowserAction();
+
+      expect(
+        document.getElementById("autoMuteBrowserActionMuteTabShortcut")
+          .innerHTML
+      ).toBe("&nbsp;(Ctrl+Shift+M)");
+    });
   });
 
-  it("should mute an unmuted tab when the page is removed from the allow list", async () => {
-    storage.usingAllowList = true;
-    storage.allowOrBlockList = "https://www.youtube.com/";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
-    await loadBrowserAction();
+  describe("'Mute all tabs' menu item", () => {
+    it("should mute all unmuted tabs when clicked", async () => {
+      storage.usingAllowList = true;
+      storage.allowOrBlockList =
+        "https://www.youtube.com/\nhttps://google.com/";
+      tabs = [
+        {
+          id: 1,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: true,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 2,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: false,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 3,
+          url: "https://www.notyoutube.com/",
+          mutedInfo: { muted: false },
+          active: false,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 4,
+          url: "https://google.com/",
+          mutedInfo: { muted: false },
+          active: false,
+          lastFocusedWindow: true,
+        },
+      ];
+      await startExtension();
+      await loadBrowserAction();
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(false);
+      // Sanity check
+      expect(tabs[0].mutedInfo.muted).toBe(false);
+      expect(tabs[1].mutedInfo.muted).toBe(false);
+      expect(tabs[2].mutedInfo.muted).toBe(true);
+      expect(tabs[3].mutedInfo.muted).toBe(false);
 
-    document
-      .getElementById("autoMuteBrowserActionListPage")
-      .dispatchEvent(new MouseEvent("click"));
+      document
+        .getElementById("autoMuteBrowserActionMuteAll")
+        .dispatchEvent(new MouseEvent("click"));
 
-    // Wait for the click event to be processed
-    await new Promise(process.nextTick);
+      // Wait for the click event to be processed
+      await new Promise(process.nextTick);
 
-    expect(storage.allowOrBlockList).toBe("");
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+      expect(tabs[1].mutedInfo.muted).toBe(true);
+      expect(tabs[2].mutedInfo.muted).toBe(true);
+      expect(tabs[3].mutedInfo.muted).toBe(true);
+    });
 
-    expect(tabs[0].mutedInfo.muted).toBe(true);
+    it("should show the correct shortcut keys", async () => {
+      await startExtension();
+      await loadBrowserAction();
+
+      expect(
+        document.getElementById("autoMuteBrowserActionMuteAllShortcut")
+          .innerHTML
+      ).toBe("&nbsp;(Ctrl+Shift+A)");
+    });
   });
 
-  it("should unmute a muted tab when the domain is added to the allow list", async () => {
-    storage.usingAllowList = true;
-    storage.allowOrBlockList = "";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
-    await loadBrowserAction();
+  describe("'Mute other tabs' menu item", () => {
+    it("should mute all inactive tabs when clicked", async () => {
+      storage.usingAllowList = true;
+      storage.allowOrBlockList =
+        "https://www.youtube.com/\nhttps://google.com/";
+      tabs = [
+        {
+          id: 1,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: false,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 2,
+          url: "https://www.youtube.com/",
+          mutedInfo: { muted: false },
+          active: true,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 3,
+          url: "https://www.notyoutube.com/",
+          mutedInfo: { muted: false },
+          active: false,
+          lastFocusedWindow: true,
+        },
+        {
+          id: 4,
+          url: "https://google.com/",
+          mutedInfo: { muted: false },
+          active: true,
+          lastFocusedWindow: false,
+        },
+      ];
+      await startExtension();
+      await loadBrowserAction();
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(true);
+      // Sanity check
+      expect(tabs[0].mutedInfo.muted).toBe(false);
+      expect(tabs[1].mutedInfo.muted).toBe(false);
+      expect(tabs[2].mutedInfo.muted).toBe(true);
+      expect(tabs[3].mutedInfo.muted).toBe(false);
 
-    document
-      .getElementById("autoMuteBrowserActionListDomain")
-      .dispatchEvent(new MouseEvent("click"));
+      document
+        .getElementById("autoMuteBrowserActionMuteOther")
+        .dispatchEvent(new MouseEvent("click"));
 
-    // Wait for the click event to be processed
-    await new Promise(process.nextTick);
+      // Wait for the click event to be processed
+      await new Promise(process.nextTick);
 
-    expect(storage.allowOrBlockList).toBe("www.youtube.com/*");
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+      expect(tabs[1].mutedInfo.muted).toBe(false);
+      expect(tabs[2].mutedInfo.muted).toBe(true);
+      expect(tabs[3].mutedInfo.muted).toBe(true);
+    });
 
-    expect(tabs[0].mutedInfo.muted).toBe(false);
+    it("should show the correct shortcut keys", async () => {
+      await startExtension();
+      await loadBrowserAction();
+
+      expect(
+        document.getElementById("autoMuteBrowserActionMuteOtherShortcut")
+          .innerHTML
+      ).toBe("&nbsp;(Ctrl+Shift+O)");
+    });
   });
 
-  it("should mute an unmuted tab when the domain is removed from the allow list", async () => {
-    storage.usingAllowList = true;
-    storage.allowOrBlockList = "www.youtube.com/*";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
-    await loadBrowserAction();
+  describe("using an allow list", () => {
+    beforeEach(() => {
+      storage.usingAllowList = true;
+    });
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(false);
+    describe("'Never/Always mute this page' menu item", () => {
+      it("should unmute a muted tab when clicked", async () => {
+        storage.allowOrBlockList = "";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
 
-    document
-      .getElementById("autoMuteBrowserActionListDomain")
-      .dispatchEvent(new MouseEvent("click"));
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
 
-    // Wait for the click event to be processed
-    await new Promise(process.nextTick);
+        document
+          .getElementById("autoMuteBrowserActionListPage")
+          .dispatchEvent(new MouseEvent("click"));
 
-    expect(storage.allowOrBlockList).toBe("");
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
 
-    expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(storage.allowOrBlockList).toBe("https://www.youtube.com/");
+
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
+      });
+
+      it("should mute an unmuted tab when clicked", async () => {
+        storage.allowOrBlockList =
+          "https://www.youtube.com/\nhttps://www.notyoutube.com/";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
+
+        document
+          .getElementById("autoMuteBrowserActionListPage")
+          .dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.allowOrBlockList).toBe("https://www.notyoutube.com/");
+
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
+      });
+
+      it("should show 'Always' when the page is in the list", async () => {
+        storage.allowOrBlockList = "https://www.youtube.com/";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        expect(
+          document.getElementById("autoMuteBrowserActionPageNeverOrAlways")
+            .innerHTML
+        ).toBe("Always&nbsp;mute&nbsp;this&nbsp;page");
+      });
+
+      it("should show 'Never' when the page is not in the list", async () => {
+        storage.allowOrBlockList = "https://www.notyoutube.com/";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        expect(
+          document.getElementById("autoMuteBrowserActionPageNeverOrAlways")
+            .innerHTML
+        ).toBe("Never&nbsp;mute&nbsp;this&nbsp;page");
+      });
+    });
+
+    describe("'Never/Always mute this domain' menu item", () => {
+      it("should unmute a muted tab when clicked", async () => {
+        storage.allowOrBlockList = "";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/watch?v=some_id",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
+
+        document
+          .getElementById("autoMuteBrowserActionListDomain")
+          .dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.allowOrBlockList).toBe("www.youtube.com/*");
+
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
+      });
+
+      it("should mute an unmuted tab when clicked", async () => {
+        storage.allowOrBlockList = "www.youtube.com/*\nwww.notyoutube.com/*";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/watch?v=some_id",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
+
+        document
+          .getElementById("autoMuteBrowserActionListDomain")
+          .dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.allowOrBlockList).toBe("www.notyoutube.com/*");
+
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
+      });
+
+      it("should show 'Always' when the domain is in the list", async () => {
+        storage.allowOrBlockList = "www.youtube.com/*";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        expect(
+          document.getElementById("autoMuteBrowserActionDomainNeverOrAlways")
+            .innerHTML
+        ).toBe("Always&nbsp;mute&nbsp;this&nbsp;domain");
+      });
+
+      it("should show 'Never' when the domain is not in the list", async () => {
+        storage.allowOrBlockList = "www.notyoutube.com/*";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        expect(
+          document.getElementById("autoMuteBrowserActionDomainNeverOrAlways")
+            .innerHTML
+        ).toBe("Never&nbsp;mute&nbsp;this&nbsp;domain");
+      });
+    });
   });
 
-  it("should mute an unmuted tab when the page is added to the block list", async () => {
-    storage.usingAllowList = false;
-    storage.allowOrBlockList = "";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
-    await loadBrowserAction();
+  describe("using a block list", () => {
+    beforeEach(() => {
+      storage.usingAllowList = false;
+    });
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(false);
+    describe("'Never/Always mute this page' menu item", () => {
+      it("should mute an unmuted tab when clicked", async () => {
+        storage.allowOrBlockList = "";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
 
-    document
-      .getElementById("autoMuteBrowserActionListPage")
-      .dispatchEvent(new MouseEvent("click"));
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
 
-    // Wait for the click event to be processed
-    await new Promise(process.nextTick);
+        document
+          .getElementById("autoMuteBrowserActionListPage")
+          .dispatchEvent(new MouseEvent("click"));
 
-    expect(storage.allowOrBlockList).toBe("https://www.youtube.com/");
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
 
-    expect(tabs[0].mutedInfo.muted).toBe(true);
-  });
+        expect(storage.allowOrBlockList).toBe("https://www.youtube.com/");
 
-  it("should unmute a muted tab when the page is removed from the block list", async () => {
-    storage.usingAllowList = false;
-    storage.allowOrBlockList = "https://www.youtube.com/";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
+      });
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(true);
+      it("should unmute a muted tab when clicked", async () => {
+        storage.allowOrBlockList =
+          "https://www.youtube.com/\nhttps://www.notyoutube.com/";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
 
-    await commandsOnCommandListener("list-page");
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
 
-    expect(storage.allowOrBlockList).toBe("");
+        document
+          .getElementById("autoMuteBrowserActionListPage")
+          .dispatchEvent(new MouseEvent("click"));
 
-    expect(tabs[0].mutedInfo.muted).toBe(false);
-  });
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
 
-  it("should mute an unmuted tab when the domain is added to the block list", async () => {
-    storage.usingAllowList = false;
-    storage.allowOrBlockList = "";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
+        expect(storage.allowOrBlockList).toBe("https://www.notyoutube.com/");
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
+      });
 
-    await commandsOnCommandListener("list-domain");
+      it("should show 'Always' when the page is not in the list", async () => {
+        storage.allowOrBlockList = "https://www.notyoutube.com/";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
 
-    expect(storage.allowOrBlockList).toBe("www.youtube.com/*");
+        expect(
+          document.getElementById("autoMuteBrowserActionPageNeverOrAlways")
+            .innerHTML
+        ).toBe("Always&nbsp;mute&nbsp;this&nbsp;page");
+      });
 
-    expect(tabs[0].mutedInfo.muted).toBe(true);
-  });
+      it("should show 'Never' when the page is in the list", async () => {
+        storage.allowOrBlockList = "https://www.youtube.com/";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
 
-  it("should unmute a muted tab when the domain is removed from the block list", async () => {
-    storage.usingAllowList = false;
-    storage.allowOrBlockList = "www.youtube.com/*";
-    tabs = [
-      {
-        id: 1,
-        url: "https://www.youtube.com/",
-        mutedInfo: { muted: false },
-        active: true,
-        lastFocusedWindow: true,
-      },
-    ];
-    await startExtension();
+        expect(
+          document.getElementById("autoMuteBrowserActionPageNeverOrAlways")
+            .innerHTML
+        ).toBe("Never&nbsp;mute&nbsp;this&nbsp;page");
+      });
+    });
 
-    // Sanity check
-    expect(tabs[0].mutedInfo.muted).toBe(true);
+    describe("'Never/Always mute this domain' menu item", () => {
+      it("should mute an unmuted tab when clicked", async () => {
+        storage.allowOrBlockList = "";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/watch?v=some_id",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
 
-    await commandsOnCommandListener("list-domain");
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
 
-    expect(storage.allowOrBlockList).toBe("");
+        document
+          .getElementById("autoMuteBrowserActionListDomain")
+          .dispatchEvent(new MouseEvent("click"));
 
-    expect(tabs[0].mutedInfo.muted).toBe(false);
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.allowOrBlockList).toBe("www.youtube.com/*");
+
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(false);
+      });
+
+      it("should unmute a muted tab when clicked", async () => {
+        storage.allowOrBlockList = "www.youtube.com/*\nwww.notyoutube.com/*";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.youtube.com/watch?v=some_id",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 3,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        // Sanity check
+        expect(tabs[0].mutedInfo.muted).toBe(true);
+        expect(tabs[1].mutedInfo.muted).toBe(true);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
+
+        document
+          .getElementById("autoMuteBrowserActionListDomain")
+          .dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.allowOrBlockList).toBe("www.notyoutube.com/*");
+
+        expect(tabs[0].mutedInfo.muted).toBe(false);
+        expect(tabs[1].mutedInfo.muted).toBe(false);
+        expect(tabs[2].mutedInfo.muted).toBe(true);
+      });
+
+      it("should show 'Always' when the domain is not in the list", async () => {
+        storage.allowOrBlockList = "www.notyoutube.com/*";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        expect(
+          document.getElementById("autoMuteBrowserActionDomainNeverOrAlways")
+            .innerHTML
+        ).toBe("Always&nbsp;mute&nbsp;this&nbsp;domain");
+      });
+
+      it("should show 'Never' when the domain is in the list", async () => {
+        storage.allowOrBlockList = "www.youtube.com/*";
+        tabs = [
+          {
+            id: 1,
+            url: "https://www.youtube.com/",
+            mutedInfo: { muted: false },
+            active: true,
+            lastFocusedWindow: true,
+          },
+          {
+            id: 2,
+            url: "https://www.notyoutube.com/",
+            mutedInfo: { muted: false },
+            active: false,
+            lastFocusedWindow: true,
+          },
+        ];
+        await startExtension();
+        await loadBrowserAction();
+
+        expect(
+          document.getElementById("autoMuteBrowserActionDomainNeverOrAlways")
+            .innerHTML
+        ).toBe("Never&nbsp;mute&nbsp;this&nbsp;domain");
+      });
+    });
   });
 
   describe("offscreen document", () => {
