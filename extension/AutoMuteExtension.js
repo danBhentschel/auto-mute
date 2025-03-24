@@ -4,6 +4,8 @@ class AutoMuteExtension {
   #extensionOptions;
   /** @member {TabTracker} */
   #tabTracker;
+  /** @member {IconSwitcher} */
+  #iconSwitcher;
   /** @member {Object} */
   #logger;
 
@@ -11,20 +13,31 @@ class AutoMuteExtension {
    * @param {Object} chromeInstance
    * @param {ExtensionOptions} extensionOptions
    * @param {TabTracker} tabTracker
+   * @param {IconSwitcher} iconSwitcher
    * @param {Object} logger
    */
-  constructor(chromeInstance, extensionOptions, tabTracker, logger) {
+  constructor(
+    chromeInstance,
+    extensionOptions,
+    tabTracker,
+    iconSwitcher,
+    logger
+  ) {
     this.#chrome = chromeInstance;
     this.#extensionOptions = extensionOptions;
     this.#tabTracker = tabTracker;
+    this.#iconSwitcher = iconSwitcher;
     this.#logger = logger;
   }
 
   async start() {
+    this.#logger.log("Starting extension");
+
     this.#chrome.tabs.onCreated.addListener(async (tab) => {
       try {
         this.#logger.log(tab.id + ": created");
-        await this.#tabTracker.muteIfShould(tab);
+        await this.#tabTracker.muteByApplicationLogic(tab);
+        await this.#iconSwitcher.updateIcon();
       } catch (e) {
         this.#logger.error(e);
       }
@@ -35,6 +48,7 @@ class AutoMuteExtension {
         try {
           this.#logger.log(removedTabId + ": replaced -> " + addedTabId);
           await this.#tabTracker.onTabReplaced(addedTabId, removedTabId);
+          await this.#iconSwitcher.updateIcon();
         } catch (e) {
           this.#logger.error(e);
         }
@@ -43,23 +57,34 @@ class AutoMuteExtension {
 
     this.#chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
       try {
-        if (changeInfo.mutedInfo) {
-          await this.#tabTracker.updateTabMutedState(
-            tabId,
-            changeInfo.mutedInfo.muted
-          );
-        }
         if (changeInfo.url) {
           await this.#tabTracker.onTabUrlChanged(tabId, changeInfo.url);
+          await this.#iconSwitcher.updateIcon();
         }
       } catch (e) {
         this.#logger.error(e);
       }
     });
 
-    this.#chrome.commands.onCommand.addListener((command) => {
+    this.#chrome.tabs.onActivated.addListener(async () => {
       try {
-        this.#handleCommand(command);
+        await this.#iconSwitcher.updateIcon();
+      } catch (e) {
+        this.#logger.error(e);
+      }
+    });
+
+    this.#chrome.windows.onFocusChanged.addListener(async () => {
+      try {
+        await this.#iconSwitcher.updateIcon();
+      } catch (e) {
+        this.#logger.error(e);
+      }
+    });
+
+    this.#chrome.commands.onCommand.addListener(async (command) => {
+      try {
+        await this.#handleCommand(command);
       } catch (e) {
         this.#logger.error(e);
       }
@@ -68,7 +93,11 @@ class AutoMuteExtension {
     this.#chrome.runtime.onMessage.addListener(
       (request, _unusedSender, sendResponse) => {
         try {
-          return this.#handleMessage(request.command, sendResponse);
+          return this.#handleMessage(
+            request.command,
+            request.data,
+            sendResponse
+          );
         } catch (e) {
           this.#logger.error(e);
           return false;
@@ -76,7 +105,8 @@ class AutoMuteExtension {
       }
     );
 
-    await this.#tabTracker.muteAllTabs(false);
+    await this.#tabTracker.muteAllTabsByApplicationLogic();
+    await this.#iconSwitcher.updateIcon();
   }
 
   /**
@@ -90,10 +120,11 @@ class AutoMuteExtension {
    * this response.
    *
    * @param {string} command
+   * @param {Object} data
    * @param {sendResponseCallback} sendResponse
    * @returns {boolean}
    */
-  #handleMessage(command, sendResponse) {
+  #handleMessage(command, data, sendResponse) {
     switch (command) {
       case "query-current-muted":
         this.#tabTracker
@@ -107,11 +138,11 @@ class AutoMuteExtension {
           });
         return true;
 
-      case "query-using-should-not-mute-list":
+      case "query-using-should-allow-list":
         this.#extensionOptions
-          .getUsingShouldNotMuteList()
+          .getUsingAllowAudioList()
           .then((using) => {
-            sendResponse({ usingShouldNotMuteList: using });
+            sendResponse({ usingAllowAudioList: using });
           })
           .catch((e) => {
             this.#logger.error(e);
@@ -143,6 +174,16 @@ class AutoMuteExtension {
           });
         return true;
 
+      case "update-settings":
+        this.#tabTracker.updateSettings(data).then(() => {
+          this.#iconSwitcher.updateIcon();
+        });
+        break;
+
+      case "change-color-scheme":
+        this.#iconSwitcher.setSystemColorScheme(data.scheme);
+        break;
+
       default:
         this.#handleCommand(command);
     }
@@ -160,13 +201,13 @@ class AutoMuteExtension {
         await this.#tabTracker.applyMute();
         break;
       case "mute-all":
-        await this.#tabTracker.muteAllTabs(true);
+        await this.#tabTracker.muteAllTabsByUserRequest();
         break;
       case "mute-tab":
-        await this.#tabTracker.toggleMuteOnCurrentTab();
+        await this.#tabTracker.toggleMuteOnCurrentTabByUserRequest();
         break;
       case "mute-other":
-        await this.#tabTracker.muteOtherTabs();
+        await this.#tabTracker.muteOtherTabsByUserRequest();
         break;
       case "list-page":
         await this.#tabTracker.addOrRemoveCurrentPageInList();
@@ -174,10 +215,9 @@ class AutoMuteExtension {
       case "list-domain":
         await this.#tabTracker.addOrRemoveCurrentDomainInList();
         break;
-      case "switch-list-type":
-        await this.#extensionOptions.switchListType();
-        break;
     }
+
+    await this.#iconSwitcher.updateIcon();
   }
 }
 

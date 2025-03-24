@@ -1,8 +1,8 @@
 import { jest } from "@jest/globals";
 
-import ListExpert from "../extension/ListExpert";
+import ListExpert from "../extension/ListExpert.js";
 
-test("Should instantiate ListExpert", () => {
+it("should instantiate ListExpert", () => {
   expect(ListExpert).toBeDefined();
 });
 
@@ -12,69 +12,45 @@ describe("ListExpert ->", () => {
   let mockUrlMatcher;
   /** @type {ListExpert} */
   let expert;
-  let useRegexValue = false;
 
-  let usingShouldNotMuteFromOptions = true;
-  let shouldNotMuteListFromOptions = [];
-  let shouldMuteListFromOptions = [];
+  let usingAllowAudioFromOptions = true;
+  let allowOrBlockAudioListFromOptions = [];
 
   /**
    *
-   * @param {boolean} usingShouldNotMute
+   * @param {boolean} usingAllowAudio
    * @param {string[]} list
    */
-  function setupList(usingShouldNotMute, list) {
-    usingShouldNotMuteFromOptions = usingShouldNotMute;
-    if (usingShouldNotMute) {
-      shouldNotMuteListFromOptions = list;
-    } else {
-      shouldMuteListFromOptions = list;
-    }
+  function setupList(usingAllowAudio, list) {
+    usingAllowAudioFromOptions = usingAllowAudio;
+    allowOrBlockAudioListFromOptions = list;
   }
 
   beforeEach(() => {
     mockOptions = {
-      getUseRegex: () => {},
-      getUsingShouldNotMuteList: () => {},
-      getShouldNotMuteList: () => {},
-      getShouldMuteList: () => {},
-      setShouldNotMuteList: () => {},
-      setShouldMuteList: () => {},
+      getUsingAllowAudioList: () => {},
+      getAllowOrBlockAudioList: () => {},
+      getBlockAudioList: () => {},
+      setAllowOrBlockAudioList: () => {},
     };
 
-    useRegexValue = false;
-    usingShouldNotMuteFromOptions = true;
-    shouldNotMuteListFromOptions = [];
-    shouldMuteListFromOptions = [];
+    usingAllowAudioFromOptions = true;
+    allowOrBlockAudioListFromOptions = [];
 
     jest
-      .spyOn(mockOptions, "getUseRegex")
-      .mockImplementation(async () => Promise.resolve(useRegexValue));
-    jest
-      .spyOn(mockOptions, "getUsingShouldNotMuteList")
+      .spyOn(mockOptions, "getUsingAllowAudioList")
       .mockImplementation(async () =>
-        Promise.resolve(usingShouldNotMuteFromOptions)
+        Promise.resolve(usingAllowAudioFromOptions)
       );
     jest
-      .spyOn(mockOptions, "getShouldNotMuteList")
+      .spyOn(mockOptions, "getAllowOrBlockAudioList")
       .mockImplementation(async () =>
-        Promise.resolve(shouldNotMuteListFromOptions)
+        Promise.resolve(allowOrBlockAudioListFromOptions)
       );
     jest
-      .spyOn(mockOptions, "getShouldMuteList")
-      .mockImplementation(async () =>
-        Promise.resolve(shouldMuteListFromOptions)
-      );
-    jest
-      .spyOn(mockOptions, "setShouldNotMuteList")
+      .spyOn(mockOptions, "setAllowOrBlockAudioList")
       .mockImplementation(async (list) => {
         setupList(true, list);
-        return Promise.resolve();
-      });
-    jest
-      .spyOn(mockOptions, "setShouldMuteList")
-      .mockImplementation(async (list) => {
-        setupList(false, list);
         return Promise.resolve();
       });
 
@@ -94,7 +70,7 @@ describe("ListExpert ->", () => {
   });
 
   describe("isInList() ->", () => {
-    test("Should return true for a value in the list", async () => {
+    it("should return true for a value in the list", async () => {
       const urlToFind = "http://www.hentschels.com";
       jest
         .spyOn(mockUrlMatcher, "urlPatternMatch")
@@ -105,7 +81,7 @@ describe("ListExpert ->", () => {
       expect(found).toBe(true);
     });
 
-    test("Should return false for a value not in the list", async () => {
+    it("should return false for a value not in the list", async () => {
       const urlToFind = "http://www.hentschels.com";
       jest
         .spyOn(mockUrlMatcher, "urlPatternMatch")
@@ -118,7 +94,7 @@ describe("ListExpert ->", () => {
   });
 
   describe("isExactMatchInList() ->", () => {
-    test("Should return true for a value in the list", async () => {
+    it("should return true for a value in the list", async () => {
       const urlToFind = "http://www.hentschels.com";
       jest
         .spyOn(mockUrlMatcher, "isExactUrlInList")
@@ -131,7 +107,7 @@ describe("ListExpert ->", () => {
       expect(found).toBe(true);
     });
 
-    test("Should return false for a value not in the list", async () => {
+    it("should return false for a value not in the list", async () => {
       const urlToFind = "http://www.hentschels.com";
       jest
         .spyOn(mockUrlMatcher, "isExactUrlInList")
@@ -146,7 +122,7 @@ describe("ListExpert ->", () => {
   });
 
   describe("isDomainInList() ->", () => {
-    test("Should return true for a value in the list", async () => {
+    it("should return true for a value in the list", async () => {
       const urlToFind = "http://www.hentschels.com";
       jest
         .spyOn(mockUrlMatcher, "isDomainInList")
@@ -159,7 +135,7 @@ describe("ListExpert ->", () => {
       expect(found).toBe(true);
     });
 
-    test("Should return false for a value not in the list", async () => {
+    it("should return false for a value not in the list", async () => {
       const urlToFind = "http://www.hentschels.com";
       jest
         .spyOn(mockUrlMatcher, "isDomainInList")
@@ -174,27 +150,27 @@ describe("ListExpert ->", () => {
   });
 
   describe("getListInfo() ->", () => {
-    test('Should return a "should not mute" list properly', async () => {
+    it('Should return an "allow audio" list properly', async () => {
       setupList(true, ["urlA", "urlB", "urlC", "urlD"]);
 
       const listInfo = await expert.getListInfo();
-      expect(listInfo.isListOfPagesToMute).toBe(false);
+      expect(listInfo.isAllowedAudioList).toBe(true);
       expect(listInfo.listOfPages.length).toBe(4);
       expect(listInfo.listOfPages[2]).toBe("urlC");
     });
 
-    test('Should return a "should mute" list properly', async () => {
+    it('Should return a "block audio" list properly', async () => {
       setupList(false, ["urlA", "urlB", "urlC"]);
 
       const listInfo = await expert.getListInfo();
-      expect(listInfo.isListOfPagesToMute).toBe(true);
+      expect(listInfo.isAllowedAudioList).toBe(false);
       expect(listInfo.listOfPages.length).toBe(3);
       expect(listInfo.listOfPages[1]).toBe("urlB");
     });
   });
 
   describe("addOrRemoveUrlInList() ->", () => {
-    test("Should add a url to a list if it is not there", async () => {
+    it("should add a url to a list if it is not there", async () => {
       jest
         .spyOn(mockUrlMatcher, "isExactUrlInList")
         .mockImplementation((list, url) => list.includes(url));
@@ -208,7 +184,7 @@ describe("ListExpert ->", () => {
       expect(newListInfo.listOfPages).toContain("urlD");
     });
 
-    test("Should remove a url from a list if it is already there", async () => {
+    it("should remove a url from a list if it is already there", async () => {
       jest
         .spyOn(mockUrlMatcher, "isExactUrlInList")
         .mockImplementation((list, url) => list.includes(url));
@@ -224,7 +200,7 @@ describe("ListExpert ->", () => {
   });
 
   describe("addOrRemoveDomainInList() ->", () => {
-    test("Should add a domain to a list if it is not there", async () => {
+    it("should add a domain to a list if it is not there", async () => {
       jest
         .spyOn(mockUrlMatcher, "isDomainInList")
         .mockImplementation((list, url) => list.includes(url));
@@ -239,7 +215,7 @@ describe("ListExpert ->", () => {
       expect(newListInfo.listOfPages).toContain("domD");
     });
 
-    test("Should remove a domain from a list if it is already there", async () => {
+    it("should remove a domain from a list if it is already there", async () => {
       jest
         .spyOn(mockUrlMatcher, "isDomainInList")
         .mockImplementation((list, url) => list.includes(url));

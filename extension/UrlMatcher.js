@@ -1,4 +1,14 @@
 class UrlMatcher {
+  /** @member {Object} */
+  #logger;
+
+  /**
+   * @param {Object} logger
+   */
+  constructor(logger) {
+    this.#logger = logger;
+  }
+
   /**
    * @param {string} url
    * @returns string
@@ -19,10 +29,15 @@ class UrlMatcher {
   /**
    * @param {string} pattern
    * @param {string} url
-   * @param {boolean} useRegex
    * @returns boolean
    */
-  urlPatternMatch(pattern, url, useRegex) {
+  urlPatternMatch(pattern, url) {
+    // If the pattern is surrounded by '`' backticks, it's a regex
+    const useRegex = pattern.startsWith("`") && pattern.endsWith("`");
+    if (useRegex) {
+      pattern = pattern.substring(1, pattern.length - 1);
+    }
+
     let hostnameRegex = this.#getHostnameOf(pattern);
     let pathRegex = this.#getPathOf(pattern) || "/";
     let portRegex = this.#getPortOf(pattern) || "";
@@ -56,21 +71,21 @@ class UrlMatcher {
   /**
    * @param {string[]} list
    * @param {string} url
-   * @param {boolean} useRegex
    * @returns boolean
    */
-  isDomainInList(list, url, useRegex) {
-    const domPattern = this.domainPattern(url, useRegex);
-    return list.filter((_) => this.urlsMatch(_, domPattern)).length > 0;
+  isDomainInList(list, url) {
+    const domPattern = this.domainPattern(url);
+    return (
+      list.filter((listItem) => this.urlsMatch(listItem, domPattern)).length > 0
+    );
   }
 
   /**
    * @param {string} url
-   * @param {boolean} useRegex
    * @returns string
    */
-  domainPattern(url, useRegex) {
-    return this.#getHostnameOf(url) + (useRegex ? "/.*" : "/*");
+  domainPattern(url) {
+    return this.#getHostnameOf(url) + "/*";
   }
 
   /**
@@ -95,6 +110,10 @@ class UrlMatcher {
     const hashRx = "(?:#(.*))?";
     const urlRegEx = `${protoRx}${userPassRx}${hostRx}${portRx}${pathRx}${paramRx}${hashRx}`;
     const match = url.match(urlRegEx);
+    if (!match) {
+      this.#logger.log(`Failed to parse URL: ${url}`);
+      return {};
+    }
 
     return {
       protocol: match[1],

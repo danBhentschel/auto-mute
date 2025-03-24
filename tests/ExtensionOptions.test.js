@@ -2,7 +2,7 @@ import { jest } from "@jest/globals";
 
 import ExtensionOptions from "../extension/ExtensionOptions";
 
-test("Should instantiate ExtensionOptions", () => {
+it("should instantiate ExtensionOptions", () => {
   expect(ExtensionOptions).toBeDefined();
 });
 
@@ -52,7 +52,7 @@ describe("ExtensionOptions ->", () => {
     storage = {};
   });
 
-  test("should return the enabled value from storage", async () => {
+  it("should return the enabled value from storage", async () => {
     storage.enabled = false;
     let enabled = await options.getEnabled();
     expect(mockChrome.storage.sync.get).toHaveBeenCalled();
@@ -63,67 +63,44 @@ describe("ExtensionOptions ->", () => {
     expect(enabled).toBe(true);
   });
 
-  test("should return a default enabled value of `true` from storage", async () => {
+  it("should return a default enabled value of `true` from storage", async () => {
     const enabled = await options.getEnabled();
     expect(mockChrome.storage.sync.get).toHaveBeenCalled();
     expect(enabled).toBe(true);
   });
 
-  test("should properly handle rejected promise when getting enabled value", async () => {
+  it("should properly handle rejected promise when getting enabled value", async () => {
     shouldThrow = true;
     await expect(options.getEnabled()).rejects.toThrow("Test error");
   });
 
-  test("should return the useRegex value from storage", async () => {
-    storage.useRegex = false;
-    let useRegex = await options.getUseRegex();
+  it("should return the type of list from storage", async () => {
+    storage.usingAllowList = false;
+    let usingAllowAudioList = await options.getUsingAllowAudioList();
     expect(mockChrome.storage.sync.get).toHaveBeenCalled();
-    expect(useRegex).toBe(false);
+    expect(usingAllowAudioList).toBe(false);
 
-    storage.useRegex = true;
-    useRegex = await options.getUseRegex();
-    expect(useRegex).toBe(true);
+    storage.usingAllowList = true;
+    usingAllowAudioList = await options.getUsingAllowAudioList();
+    expect(usingAllowAudioList).toBe(true);
   });
 
-  test("should return a default useRegex value of `false` from storage", async () => {
-    const useRegex = await options.getUseRegex();
+  it("should return a default list type of 'allow audio' from storage", async () => {
+    const usingAllowAudioList = await options.getUsingAllowAudioList();
     expect(mockChrome.storage.sync.get).toHaveBeenCalled();
-    expect(useRegex).toBe(false);
+    expect(usingAllowAudioList).toBe(true);
   });
 
-  test("should properly handle rejected promise when getting useRegex value", async () => {
+  it("should properly handle rejected promise when getting list type", async () => {
     shouldThrow = true;
-    await expect(options.getUseRegex()).rejects.toThrow("Test error");
-  });
-
-  test("should return the type of list from storage", async () => {
-    storage.usingWhitelist = false;
-    let usingShouldNotMuteList = await options.getUsingShouldNotMuteList();
-    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
-    expect(usingShouldNotMuteList).toBe(false);
-
-    storage.usingWhitelist = true;
-    usingShouldNotMuteList = await options.getUsingShouldNotMuteList();
-    expect(usingShouldNotMuteList).toBe(true);
-  });
-
-  test("should return a default list type of 'should not mute' from storage", async () => {
-    const usingShouldNotMuteList = await options.getUsingShouldNotMuteList();
-    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
-    // Default is true as per the original test expectation
-    expect(usingShouldNotMuteList).toBe(true);
-  });
-
-  test("should properly handle rejected promise when getting list type", async () => {
-    shouldThrow = true;
-    await expect(options.getUsingShouldNotMuteList()).rejects.toThrow(
+    await expect(options.getUsingAllowAudioList()).rejects.toThrow(
       "Test error"
     );
   });
 
-  test("should return the 'should not mute' list from storage", async () => {
-    storage.whitelist = "urlA\nurlB\nurlC";
-    const list = await options.getShouldNotMuteList();
+  it("should return the 'allow/block audio' list from storage", async () => {
+    storage.allowOrBlockList = "urlA\nurlB\nurlC";
+    const list = await options.getAllowOrBlockAudioList();
     expect(mockChrome.storage.sync.get).toHaveBeenCalled();
     expect(list).toHaveLength(3);
     expect(list[0]).toBe("urlA");
@@ -131,9 +108,9 @@ describe("ExtensionOptions ->", () => {
     expect(list[2]).toBe("urlC");
   });
 
-  test("should prune whitespace from the 'should not mute' list", async () => {
-    storage.whitelist = "urlA\n\n\nurlB\n  \n urlC  ";
-    const list = await options.getShouldNotMuteList();
+  it("should prune whitespace from the 'allow/block audio' list", async () => {
+    storage.allowOrBlockList = "urlA\n\n\nurlB\n  \n urlC  ";
+    const list = await options.getAllowOrBlockAudioList();
     expect(mockChrome.storage.sync.get).toHaveBeenCalled();
     expect(list).toHaveLength(3);
     expect(list[0]).toBe("urlA");
@@ -141,87 +118,45 @@ describe("ExtensionOptions ->", () => {
     expect(list[2]).toBe("urlC");
   });
 
-  test("should return a default of an empty list for the 'should not mute' list in storage", async () => {
-    const list = await options.getShouldNotMuteList();
+  it("should return a default of an empty list for the 'allow/block audio' list in storage", async () => {
+    const list = await options.getAllowOrBlockAudioList();
     expect(mockChrome.storage.sync.get).toHaveBeenCalled();
     expect(list).toHaveLength(0);
   });
 
-  test("should properly handle rejected promise when getting 'should not mute' list", async () => {
+  it("should properly handle rejected promise when getting 'allow/block audio' list", async () => {
     shouldThrow = true;
-    await expect(options.getShouldNotMuteList()).rejects.toThrow("Test error");
+    await expect(options.getAllowOrBlockAudioList()).rejects.toThrow(
+      "Test error"
+    );
   });
 
-  test("should return the 'should mute' list from storage", async () => {
-    storage.blacklist = "urlA\nurlB\nurlC";
-    const list = await options.getShouldMuteList();
-    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
-    expect(list).toHaveLength(3);
-    expect(list[0]).toBe("urlA");
-    expect(list[1]).toBe("urlB");
-    expect(list[2]).toBe("urlC");
-  });
-
-  test("should prune whitespace from the 'should mute' list", async () => {
-    storage.blacklist = "urlA\n\n\nurlB\n  \n urlC  ";
-    const list = await options.getShouldMuteList();
-    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
-    expect(list).toHaveLength(3);
-    expect(list[0]).toBe("urlA");
-    expect(list[1]).toBe("urlB");
-    expect(list[2]).toBe("urlC");
-  });
-
-  test("should return a default of an empty list for the 'should mute' list in storage", async () => {
-    const list = await options.getShouldMuteList();
-    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
-    expect(list).toHaveLength(0);
-  });
-
-  test("should properly handle rejected promise when getting 'should mute' list", async () => {
-    shouldThrow = true;
-    await expect(options.getShouldMuteList()).rejects.toThrow("Test error");
-  });
-
-  test("should set the 'should not mute' list contents in storage", async () => {
-    await options.setShouldNotMuteList(["urlAA", "urlBB", "urlCC"]);
+  it("should set the 'allow/block audio' list contents in storage", async () => {
+    await options.setAllowOrBlockAudioList(["urlAA", "urlBB", "urlCC"]);
     expect(mockChrome.storage.sync.set).toHaveBeenCalled();
-    expect(storage.whitelist).toBe("urlAA\nurlBB\nurlCC");
+    expect(storage.allowOrBlockList).toBe("urlAA\nurlBB\nurlCC");
   });
 
-  test("should properly handle rejected promise when setting 'should not mute' list", async () => {
+  it("should properly handle rejected promise when setting the 'allow/block audio' list", async () => {
     shouldThrow = true;
     await expect(
-      options.setShouldNotMuteList(["urlAA", "urlBB", "urlCC"])
+      options.setAllowOrBlockAudioList(["urlAA", "urlBB", "urlCC"])
     ).rejects.toThrow("Test error");
   });
 
-  test("should set the 'should mute' list contents in storage", async () => {
-    await options.setShouldMuteList(["urlAA", "urlBB", "urlCC"]);
-    expect(mockChrome.storage.sync.set).toHaveBeenCalled();
-    expect(storage.blacklist).toBe("urlAA\nurlBB\nurlCC");
-  });
-
-  test("should properly handle rejected promise when setting 'should mute' list", async () => {
-    shouldThrow = true;
-    await expect(
-      options.setShouldMuteList(["urlAA", "urlBB", "urlCC"])
-    ).rejects.toThrow("Test error");
-  });
-
-  test("should toggle the list type in storage", async () => {
+  it("should toggle the list type in storage", async () => {
     await options.switchListType();
     expect(mockChrome.storage.sync.set).toHaveBeenCalled();
-    expect(storage.usingWhitelist).toBe(false);
+    expect(storage.usingAllowList).toBe(false);
 
     await options.switchListType();
-    expect(storage.usingWhitelist).toBe(true);
+    expect(storage.usingAllowList).toBe(true);
 
     await options.switchListType();
-    expect(storage.usingWhitelist).toBe(false);
+    expect(storage.usingAllowList).toBe(false);
   });
 
-  test("should properly handle rejected promise when toggling list type", async () => {
+  it("should properly handle rejected promise when toggling list type", async () => {
     shouldThrow = true;
     await expect(options.switchListType()).rejects.toThrow("Test error");
   });

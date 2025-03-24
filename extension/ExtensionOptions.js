@@ -18,24 +18,18 @@ class ExtensionOptions {
   /**
    * @returns {Promise<boolean>}
    */
-  async getUseRegex() {
-    return (await this.#chrome.storage.sync.get({ useRegex: false })).useRegex;
-  }
-
-  /**
-   * @returns {Promise<boolean>}
-   */
-  async getUsingShouldNotMuteList() {
-    return (await this.#chrome.storage.sync.get({ usingWhitelist: true }))
-      .usingWhitelist;
+  async getUsingAllowAudioList() {
+    return (await this.#chrome.storage.sync.get({ usingAllowList: true }))
+      .usingAllowList;
   }
 
   /**
    * @returns {Promise<string[]>}
    */
-  async getShouldNotMuteList() {
+  async getAllowOrBlockAudioList() {
     return this.#stringToListOfStrings(
-      (await this.#chrome.storage.sync.get({ whitelist: "" })).whitelist
+      (await this.#chrome.storage.sync.get({ allowOrBlockList: "" }))
+        .allowOrBlockList
     );
   }
 
@@ -43,28 +37,9 @@ class ExtensionOptions {
    * @param {string[]} list
    * @returns {Promise<void>}
    */
-  async setShouldNotMuteList(list) {
+  async setAllowOrBlockAudioList(list) {
     await this.#chrome.storage.sync.set({
-      whitelist: this.#listOfStringsToString(list),
-    });
-  }
-
-  /**
-   * @returns {Promise<string[]>}
-   */
-  async getShouldMuteList() {
-    return this.#stringToListOfStrings(
-      (await this.#chrome.storage.sync.get({ blacklist: "" })).blacklist
-    );
-  }
-
-  /**
-   * @param {string[]} list
-   * @returns {Promise<void>}
-   */
-  async setShouldMuteList(list) {
-    await this.#chrome.storage.sync.set({
-      blacklist: this.#listOfStringsToString(list),
+      allowOrBlockList: this.#listOfStringsToString(list),
     });
   }
 
@@ -72,9 +47,9 @@ class ExtensionOptions {
    * @returns {Promise<void>}
    */
   async switchListType() {
-    const usingShouldNotMuteList = await this.getUsingShouldNotMuteList();
+    const usingAllowAudioList = await this.getUsingAllowAudioList();
     await this.#chrome.storage.sync.set({
-      usingWhitelist: !usingShouldNotMuteList,
+      usingAllowList: !usingAllowAudioList,
     });
   }
 
