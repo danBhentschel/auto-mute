@@ -188,7 +188,13 @@ class TabTracker {
   async #setMuteOnTab(tabId, muted, force) {
     const shouldMute = !!force || (await this.#extensionOptions.getEnabled());
     if (shouldMute) {
-      await this.#chrome.tabs.update(tabId, { muted });
+      const tab = await this.#getTabById(tabId);
+      // I don't think this check is necessary, but it's difficult to verify
+      // that setting the mute state to the same value will not update the
+      // tab's extensionId. So, I'm going to leave this check in place.
+      if (tab?.mutedInfo?.muted !== muted) {
+        await this.#chrome.tabs.update(tabId, { muted });
+      }
     }
     this.#logger.log(`${tabId}: muted -> ${muted}`);
   }

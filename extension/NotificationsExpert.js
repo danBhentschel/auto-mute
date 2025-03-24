@@ -16,7 +16,8 @@ class NotificationsExpert {
   }
 
   async #run() {
-    const items = await chrome.storage.sync.get({ newFeatures: 30000 });
+    const items = await this.#chrome.storage.sync.get({ newFeatures: 30000 });
+    await this.#chrome.storage.sync.set({ newFeatures: 30000 });
     if (items.newFeatures >= 30000) {
       return;
     }
@@ -36,7 +37,7 @@ class NotificationsExpert {
       notificationOptions.message =
         "AutoMute has new features including a URL whitelist and keyboard shortcuts. Click the speaker button to explore.";
 
-      await chrome.notifications.create(
+      await this.#chrome.notifications.create(
         "new-features-2.0",
         notificationOptions
       );
@@ -46,7 +47,7 @@ class NotificationsExpert {
       notificationOptions.title = "New features in AutoMute 2.1";
       notificationOptions.message =
         "AutoMute has a new feature. You can now switch to blacklist mode, which will only mute the pages you specify.";
-      await chrome.notifications.create(
+      await this.#chrome.notifications.create(
         "new-features-2.1",
         notificationOptions
       );
@@ -56,7 +57,7 @@ class NotificationsExpert {
       notificationOptions.title = "New features in AutoMute 2.2";
       notificationOptions.message =
         "AutoMute has a new feature. You can now use regular expressions when defining URL rules.";
-      await chrome.notifications.create(
+      await this.#chrome.notifications.create(
         "new-features-2.2",
         notificationOptions
       );
@@ -66,13 +67,11 @@ class NotificationsExpert {
       notificationOptions.title = "New features in AutoMute 3.0";
       notificationOptions.message =
         "Whitelist and blacklist are now just one list. Regular expressions are now supported. Click the speaker button to explore.";
-      await chrome.notifications.create(
+      await this.#chrome.notifications.create(
         "new-features-3.0",
         notificationOptions
       );
     }
-
-    await chrome.storage.sync.set({ newFeatures: 30000 });
   }
 }
 
