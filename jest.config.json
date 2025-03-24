@@ -1,0 +1,4 @@
+{
+  "resetMocks": true,
+  "testEnvironment": "jest-environment-jsdom"
+}

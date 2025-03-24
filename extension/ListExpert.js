@@ -21,10 +21,13 @@ class ListExpert {
    * @returns {Promise<boolean>}
    */
   async isInList(list, url) {
-    const useRegex = await this.#extensionOptions.getUseRegex();
-    const matches = list.filter((entry) =>
-      this.#urlMatcher.urlPatternMatch(entry, useRegex, url)
-    );
+    if (!url) {
+      return false;
+    }
+
+    const matches = list.filter((entry) => {
+      return this.#urlMatcher.urlPatternMatch(entry, url);
+    });
     return matches.length > 0;
   }
 
@@ -50,12 +53,10 @@ class ListExpert {
    * @returns {Promise<ListInfo>}
    */
   async getListInfo() {
-    const usingShouldNotMuteList =
-      await this.#extensionOptions.getUsingShouldNotMuteList();
-    const list = usingShouldNotMuteList
-      ? await this.#extensionOptions.getShouldNotMuteList()
-      : await this.#extensionOptions.getShouldMuteList();
-    return new ListInfo(!usingShouldNotMuteList, list);
+    const usingAllowAudioList =
+      await this.#extensionOptions.getUsingAllowAudioList();
+    const list = await this.#extensionOptions.getAllowOrBlockAudioList();
+    return new ListInfo(usingAllowAudioList, list);
   }
 
   /**
@@ -77,9 +78,8 @@ class ListExpert {
    * @returns {Promise<boolean>}
    */
   async addOrRemoveDomainInList(url) {
-    const useRegex = await this.#extensionOptions.getUseRegex();
     const listInfo = await this.getListInfo();
-    const domainPattern = this.#urlMatcher.domainPattern(url, useRegex);
+    const domainPattern = this.#urlMatcher.domainPattern(url);
     const isInList = this.#urlMatcher.isDomainInList(
       listInfo.listOfPages,
       domainPattern
@@ -97,7 +97,7 @@ class ListExpert {
   async #addOrRemoveEntryInList(listInfo, entry, isInList) {
     if (isInList) {
       const newListInfo = new ListInfo(
-        listInfo.isListOfPagesToMute,
+        listInfo.isAllowedAudioList,
         listInfo.listOfPages.filter(
           (_) => !this.#urlMatcher.urlsMatch(_, entry)
         )
@@ -107,7 +107,7 @@ class ListExpert {
     } else {
       const list = listInfo.listOfPages;
       list.push(entry);
-      const newListInfo = new ListInfo(listInfo.isListOfPagesToMute, list);
+      const newListInfo = new ListInfo(listInfo.isAllowedAudioList, list);
       await this.#setList(newListInfo);
       return newListInfo;
     }
@@ -118,11 +118,7 @@ class ListExpert {
    * @returns {Promise<void>}
    */
   async #setList(listInfo) {
-    if (listInfo.isListOfPagesToMute) {
-      await this.#extensionOptions.setShouldMuteList(listInfo.listOfPages);
-    } else {
-      await this.#extensionOptions.setShouldNotMuteList(listInfo.listOfPages);
-    }
+    await this.#extensionOptions.setAllowOrBlockAudioList(listInfo.listOfPages);
   }
 }
 

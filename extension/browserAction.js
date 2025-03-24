@@ -1,116 +1,126 @@
-(function () {
-  var isFirefox = typeof InstallTrigger !== "undefined";
+(function (_chrome) {
+  let isFirefox = typeof InstallTrigger !== "undefined";
 
-  function muteAllTabs() {
+  async function muteAllTabs() {
     window.close();
-    chrome.runtime.sendMessage({ command: "mute-all" });
+    await _chrome.runtime.sendMessage({ command: "mute-all" });
   }
 
-  function muteOtherTabs() {
+  async function muteOtherTabs() {
     window.close();
-    chrome.runtime.sendMessage({ command: "mute-other" });
+    await _chrome.runtime.sendMessage({ command: "mute-other" });
   }
 
-  function muteCurrentTab() {
+  async function muteCurrentTab() {
     window.close();
-    chrome.runtime.sendMessage({ command: "mute-tab" });
+    await _chrome.runtime.sendMessage({ command: "mute-tab" });
   }
 
-  function listCurrentPage() {
+  async function listCurrentPage() {
     window.close();
-    chrome.runtime.sendMessage({ command: "list-page" });
+    await _chrome.runtime.sendMessage({ command: "list-page" });
   }
 
-  function listDomain() {
+  async function listDomain() {
     window.close();
-    chrome.runtime.sendMessage({ command: "list-domain" });
+    await _chrome.runtime.sendMessage({ command: "list-domain" });
   }
 
-  function switchListType() {
+  async function showOptions() {
     window.close();
-    chrome.runtime.sendMessage({ command: "switch-list-type" });
-  }
-
-  function showOptions() {
-    window.close();
-    let url = "chrome://extensions/?options=" + chrome.runtime.id;
+    let url = "chrome://extensions/?options=" + _chrome.runtime.id;
     if (isFirefox) {
       url = "about:addons";
     }
-    chrome.tabs.create({ url: url });
+    await _chrome.tabs.create({ url: url });
   }
 
-  $(document).ready(() => {
-    $("#autoMuteBrowserActionMuteAll").click(muteAllTabs);
-    $("#autoMuteBrowserActionMuteOther").click(muteOtherTabs);
-    $("#autoMuteBrowserActionMuteTab").click(muteCurrentTab);
-    $("#autoMuteBrowserActionListPage").click(listCurrentPage);
-    $("#autoMuteBrowserActionListDomain").click(listDomain);
+  document.addEventListener("DOMContentLoaded", async () => {
+    document
+      .getElementById("autoMuteBrowserActionMuteAll")
+      .addEventListener("click", muteAllTabs);
+    document
+      .getElementById("autoMuteBrowserActionMuteOther")
+      .addEventListener("click", muteOtherTabs);
+    document
+      .getElementById("autoMuteBrowserActionMuteTab")
+      .addEventListener("click", muteCurrentTab);
+    document
+      .getElementById("autoMuteBrowserActionListPage")
+      .addEventListener("click", listCurrentPage);
+    document
+      .getElementById("autoMuteBrowserActionListDomain")
+      .addEventListener("click", listDomain);
+
     if (isFirefox) {
-      $("#autoMuteBrowserActionShowOptions").hide();
+      document.getElementById(
+        "autoMuteBrowserActionShowOptions"
+      ).style.display = "none";
     } else {
-      $("#autoMuteBrowserActionShowOptions").click(showOptions);
+      document
+        .getElementById("autoMuteBrowserActionShowOptions")
+        .addEventListener("click", showOptions);
     }
-    chrome.runtime.sendMessage(
-      { command: "query-using-should-mute-list" },
-      (response) => {
-        if (!!response) {
-          $("#autoMuteBrowserActionPageWhiteBlack").html(
-            response.usingShouldMuteList ? "White" : "Black"
-          );
-          $("#autoMuteBrowserActionDomainWhiteBlack").html(
-            response.usingShouldMuteList ? "White" : "Black"
-          );
-        }
-      }
-    );
-
-    chrome.runtime.sendMessage(
-      { command: "query-current-muted" },
-      (response) => {
-        if (!!response)
-          $("#autoMuteBrowserActionMuteTabMuteUnmute").html(
-            response.muted ? "Unmute" : "Mute"
-          );
-      }
-    );
-    chrome.runtime.sendMessage({ command: "query-page-listed" }, (response) => {
-      if (!!response)
-        $("#autoMuteBrowserActionPageListed").html(
-          response.listed ? "Un&#8209;" : ""
-        );
+    const usingAllowListResponse = await _chrome.runtime.sendMessage({
+      command: "query-using-should-allow-list",
     });
-    chrome.runtime.sendMessage(
-      { command: "query-domain-listed" },
-      (response) => {
-        if (!!response)
-          $("#autoMuteBrowserActionDomainListed").html(
-            response.listed ? "Un&#8209;" : ""
-          );
-      }
-    );
-    chrome.commands.getAll((commands) => {
-      commands.forEach((command) => {
-        switch (command.name) {
-          case "mute-tab":
-            $("#autoMuteBrowserActionMuteTabShortcut").html(
-              !!command.shortcut ? `&nbsp;(${command.shortcut})` : ""
-            );
-            break;
-
-          case "mute-other":
-            $("#autoMuteBrowserActionMuteOtherShortcut").html(
-              !!command.shortcut ? `&nbsp;(${command.shortcut})` : ""
-            );
-            break;
-
-          case "mute-all":
-            $("#autoMuteBrowserActionMuteAllShortcut").html(
-              !!command.shortcut ? `&nbsp;(${command.shortcut})` : ""
-            );
-            break;
-        }
-      });
+    const pageInListResponse = await _chrome.runtime.sendMessage({
+      command: "query-page-listed",
     });
+    const domainInListResponse = await _chrome.runtime.sendMessage({
+      command: "query-domain-listed",
+    });
+    if (usingAllowListResponse && pageInListResponse) {
+      document.getElementById(
+        "autoMuteBrowserActionPageNeverOrAlways"
+      ).innerHTML = usingAllowListResponse.usingAllowAudioList
+        ? pageInListResponse.listed
+          ? "Always&nbsp;mute&nbsp;this&nbsp;page"
+          : "Never&nbsp;mute&nbsp;this&nbsp;page"
+        : pageInListResponse.listed
+        ? "Never&nbsp;mute&nbsp;this&nbsp;page"
+        : "Always&nbsp;mute&nbsp;this&nbsp;page";
+      document.getElementById(
+        "autoMuteBrowserActionDomainNeverOrAlways"
+      ).innerHTML = usingAllowListResponse.usingAllowAudioList
+        ? domainInListResponse.listed
+          ? "Always&nbsp;mute&nbsp;this&nbsp;domain"
+          : "Never&nbsp;mute&nbsp;this&nbsp;domain"
+        : domainInListResponse.listed
+        ? "Never&nbsp;mute&nbsp;this&nbsp;domain"
+        : "Always&nbsp;mute&nbsp;this&nbsp;domain";
+    }
+
+    const currentlyMutedResponse = await _chrome.runtime.sendMessage({
+      command: "query-current-muted",
+    });
+    if (currentlyMutedResponse) {
+      document.getElementById(
+        "autoMuteBrowserActionMuteTabMuteUnmute"
+      ).innerHTML = currentlyMutedResponse.muted ? "Unmute" : "Mute";
+    }
+
+    const commands = await _chrome.commands.getAll();
+    for (const command of commands) {
+      switch (command.name) {
+        case "mute-tab":
+          document.getElementById(
+            "autoMuteBrowserActionMuteTabShortcut"
+          ).innerHTML = command.shortcut ? `&nbsp;(${command.shortcut})` : "";
+          break;
+
+        case "mute-other":
+          document.getElementById(
+            "autoMuteBrowserActionMuteOtherShortcut"
+          ).innerHTML = command.shortcut ? `&nbsp;(${command.shortcut})` : "";
+          break;
+
+        case "mute-all":
+          document.getElementById(
+            "autoMuteBrowserActionMuteAllShortcut"
+          ).innerHTML = command.shortcut ? `&nbsp;(${command.shortcut})` : "";
+          break;
+      }
+    }
   });
-})();
+})(window.chrome);

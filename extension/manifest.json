@@ -1,29 +1,15 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "AutoMute",
   "description": "Automatically mutes each new tab the instant it is opened.",
-  "version": "2.3",
-  "permissions": [
-    "tabs",
-    "storage",
-    "notifications"
-  ],
+  "version": "3.0",
+  "permissions": ["tabs", "storage", "notifications", "offscreen"],
   "background": {
-    "scripts": [
-      "notifications.js",
-      "ListInfo.js",
-      "ExtensionOptions.js",
-      "ListExpert.js",
-      "UrlMatcher.js",
-      "TabTracker.js",
-      "background.js"
-    ]
+    "service_worker": "service_worker.js",
+    "type": "module"
   },
-  "browser_action": {
-    "default_icon": {
-      "19": "images/Speaker_19.png",
-      "38": "images/Speaker_38.png"
-    },
+  "action": {
+    "default_icon": "images/light_off_16.png",
     "default_title": "AutoMute",
     "default_popup": "browserAction.html"
   },
@@ -49,11 +35,9 @@
   },
   "icons": {
     "16": "images/Speaker_16.png",
+    "32": "images/Speaker_32.png",
     "48": "images/Speaker_48.png",
     "128": "images/Speaker_128.png"
   },
-  "options_ui": {
-    "page": "options.html",
-    "chrome_style": true
-  }
+  "options_page": "options.html"
 }

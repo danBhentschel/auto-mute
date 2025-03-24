@@ -1,32 +1,54 @@
 <!DOCTYPE html>
 <html>
-<head>
+  <head>
     <title>AutoMute Menu</title>
-    <link href="libs/bootstrap.css" rel="stylesheet"/>
-    <script src="libs/jquery-3.1.1.min.js"></script>
+    <link href="libs/bootstrap.css" rel="stylesheet" />
     <script src="browserAction.js"></script>
-</head>
+  </head>
 
-<body id="body">
+  <body id="body">
     <ul id="autoMuteBrowserActionMenu" class="nav nav-pills nav-stacked">
-        <li id="autoMuteBrowserActionMuteTab">
-            <a href="#"><span id="autoMuteBrowserActionMuteTabMuteUnmute">Mute</span>&nbsp;current&nbsp;tab<span id="autoMuteBrowserActionMuteTabShortcut">&nbsp;(Alt+Shift+M)</span></a>
-        </li>
-        <li id="autoMuteBrowserActionMuteAll">
-            <a href="#">Mute&nbsp;all&nbsp;tabs<span id="autoMuteBrowserActionMuteAllShortcut">&nbsp;(Alt+Shift+L)</span></a>
-        </li>
-        <li id="autoMuteBrowserActionMuteOther">
-            <a href="#">Mute&nbsp;other&nbsp;tabs<span id="autoMuteBrowserActionMuteOtherShortcut">&nbsp;(Alt+Shift+O)</span></a>
-        </li>
-        <li id="autoMuteBrowserActionListPage">
-            <a href="#"><span id="autoMuteBrowserActionPageListed"></span><span id="autoMuteBrowserActionPageWhiteBlack">White</span>list&nbsp;this&nbsp;page</a>
-        </li>
-        <li id="autoMuteBrowserActionListDomain">
-            <a href="#"><span id="autoMuteBrowserActionDomainListed"></span><span id="autoMuteBrowserActionDomainWhiteBlack">White</span>list&nbsp;this&nbsp;domain</a>
-        </li>
-        <li id="autoMuteBrowserActionShowOptions">
-            <a href="#">AutoMute&nbsp;Options</a>
-        </li>
+      <li id="autoMuteBrowserActionMuteTab">
+        <a href="#"
+          ><span id="autoMuteBrowserActionMuteTabMuteUnmute">Mute</span
+          >&nbsp;current&nbsp;tab<span id="autoMuteBrowserActionMuteTabShortcut"
+            >&nbsp;(Alt+Shift+M)</span
+          ></a
+        >
+      </li>
+      <li id="autoMuteBrowserActionMuteAll">
+        <a href="#"
+          >Mute&nbsp;all&nbsp;tabs<span
+            id="autoMuteBrowserActionMuteAllShortcut"
+            >&nbsp;(Alt+Shift+L)</span
+          ></a
+        >
+      </li>
+      <li id="autoMuteBrowserActionMuteOther">
+        <a href="#"
+          >Mute&nbsp;other&nbsp;tabs<span
+            id="autoMuteBrowserActionMuteOtherShortcut"
+            >&nbsp;(Alt+Shift+O)</span
+          ></a
+        >
+      </li>
+      <li id="autoMuteBrowserActionListPage">
+        <a href="#"
+          ><span id="autoMuteBrowserActionPageNeverOrAlways"
+            >Always&nbsp;mute&nbsp;this&nbsp;page</span
+          ></a
+        >
+      </li>
+      <li id="autoMuteBrowserActionListDomain">
+        <a href="#">
+          <span id="autoMuteBrowserActionDomainNeverOrAlways"
+            >Always&nbsp;mute&nbsp;this&nbsp;domain</span
+          ></a
+        >
+      </li>
+      <li id="autoMuteBrowserActionShowOptions">
+        <a href="#">AutoMute&nbsp;Options</a>
+      </li>
     </ul>
-</body>
+  </body>
 </html>

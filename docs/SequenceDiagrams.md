@@ -1,4 +1,5 @@
 # About Mermaid Diagrams
+
 These diagrams are written in the [Mermaid](https://mermaid-js.github.io/mermaid/#/) diagramming
 language. Currently, GitHub doesn't support mermaid natively, though it's a
 [poular request](https://github.community/t/feature-request-support-mermaid-markdown-graph-diagrams-in-md-files/1922).
@@ -9,6 +10,7 @@ Hopefully I can remember to keep them updated. I also have included a rendered i
 This is even less likely to be kept up-to-date.
 
 ## Icon Menu
+
 This is the drop-down menu that appears when the user clicks the extension
 icon in the top-right corner of the browser.
 
@@ -26,7 +28,7 @@ sequenceDiagram
     user->>browserAction: Mute / Unmute current tab
     browserAction->>runtime: sendMessage({ command: 'mute-tab' })
     runtime->>+extension: call onMessage listener
-    extension->>+tracker: toggleMuteOnCurrentTab()
+    extension->>+tracker: toggleMuteOnCurrentTabByUserRequest()
     deactivate extension
     tracker->>+tabs: query({ active: true })
     tabs-->>-tracker: callback(tab)
@@ -80,7 +82,7 @@ sequenceDiagram
     user->>browserAction: Mute other tabs
     browserAction->>runtime: sendMessage({ command: 'mute-other' })
     runtime->>+extension: call onMessage listener
-    extension->>+tracker: muteOtherTabs()
+    extension->>+tracker: muteOtherTabsByUserRequest()
     deactivate extension
     tracker->>+tabs: query({ active: true })
     tabs-->>-tracker: callback(tab)
@@ -97,10 +99,12 @@ sequenceDiagram
 ![Mute other tabs sequence diagram](images/mermaid-diagram-icon-mute-other3.svg)
 
 ## Tab Events
+
 These events are fired by the browser in response to the user performing actions such as
 opening a new tab or navigating to a new page.
 
 ### User navigates to a new URL
+
 In this example, the user is using a "should not mute list", and the
 URL navigated to is not in the list, so it should be muted.
 
@@ -119,11 +123,11 @@ sequenceDiagram
     tracker->>+tabs: get(tabId)
     tabs-->>-tracker: callback(tab)
     tracker->>+list: getListInfo()
-    list->>+eOptions: getUsingShouldNotMuteList()
+    list->>+eOptions: getUsingAllowAudioList()
     eOptions->>+storage: get()
     storage-->>-eOptions: callback(true)
     eOptions-->>-list: true
-    list->>+eOptions: getShouldNotMuteList()
+    list->>+eOptions: getAllowOrBlockAudioList()
     eOptions->>+storage: get()
     storage-->>-eOptions: callback(urls)
     eOptions-->>-list: urls
@@ -140,4 +144,3 @@ sequenceDiagram
 [Diagram link](https://mermaid.live/edit/#eyJjb2RlIjoic2VxdWVuY2VEaWFncmFtXG4gICAgcGFydGljaXBhbnQgdGFicyBhcyBjaHJvbWUudGFic1xuICAgIHBhcnRpY2lwYW50IHN0b3JhZ2UgYXMgY2hyb21lLnN0b3JhZ2VcbiAgICBwYXJ0aWNpcGFudCBleHRlbnNpb24gYXMgQXV0b011dGVFeHRlbnNpb25cbiAgICBwYXJ0aWNpcGFudCBlT3B0aW9ucyBhcyBFeHRlbnNpb25PcHRpb25zXG4gICAgcGFydGljaXBhbnQgdHJhY2tlciBhcyBUYWJUcmFja2VyXG4gICAgcGFydGljaXBhbnQgbGlzdCBhcyBMaXN0RXhwZXJ0XG5cbiAgICB0YWJzLT4-K2V4dGVuc2lvbjogY2FsbCB0YWJzLm9uVXBkYXRlZCBsaXN0ZW5lclxuICAgIGV4dGVuc2lvbi0-Pit0cmFja2VyOiBvblRhYlVybENoYW5nZWQodGFiSWQsIHVybClcbiAgICBkZWFjdGl2YXRlIGV4dGVuc2lvblxuICAgIHRyYWNrZXItPj4rdGFiczogZ2V0KHRhYklkKVxuICAgIHRhYnMtLT4-LXRyYWNrZXI6IGNhbGxiYWNrKHRhYilcbiAgICB0cmFja2VyLT4-K2xpc3Q6IGdldExpc3RJbmZvKClcbiAgICBsaXN0LT4-K2VPcHRpb25zOiBnZXRVc2luZ1Nob3VsZE5vdE11dGVMaXN0KClcbiAgICBlT3B0aW9ucy0-PitzdG9yYWdlOiBnZXQoKVxuICAgIHN0b3JhZ2UtLT4-LWVPcHRpb25zOiBjYWxsYmFjayh0cnVlKVxuICAgIGVPcHRpb25zLS0-Pi1saXN0OiB0cnVlXG4gICAgbGlzdC0-PitlT3B0aW9uczogZ2V0U2hvdWxkTm90TXV0ZUxpc3QoKVxuICAgIGVPcHRpb25zLT4-K3N0b3JhZ2U6IGdldCgpXG4gICAgc3RvcmFnZS0tPj4tZU9wdGlvbnM6IGNhbGxiYWNrKHVybHMpXG4gICAgZU9wdGlvbnMtLT4-LWxpc3Q6IHVybHNcbiAgICBsaXN0LS0-Pi10cmFja2VyOiBsaXN0SW5mb1xuICAgIHRyYWNrZXItPj4rbGlzdDogaXNJbkxpc3QobGlzdEluZm8sIHVybClcbiAgICBsaXN0LS0-Pi10cmFja2VyOiBmYWxzZVxuICAgIHRyYWNrZXItPj4rZU9wdGlvbnM6IGdldEVuYWJsZWQoKVxuICAgIGVPcHRpb25zLT4-K3N0b3JhZ2U6IGdldCgpXG4gICAgc3RvcmFnZS0tPj4tZU9wdGlvbnM6IGNhbGxiYWNrKHRydWUpXG4gICAgZU9wdGlvbnMtLT4-LXRyYWNrZXI6IHRydWVcbiAgICB0cmFja2VyLT4-dGFiczogdXBkYXRlKHRhYi5pZCwgeyBtdXRlZDogdHJ1ZSB9KSIsIm1lcm1haWQiOiJ7XG4gIFwidGhlbWVcIjogXCJkZWZhdWx0XCJcbn0iLCJ1cGRhdGVFZGl0b3IiOmZhbHNlLCJhdXRvU3luYyI6dHJ1ZSwidXBkYXRlRGlhZ3JhbSI6ZmFsc2V9)
 
 ![User changes tab URL sequence diagram](images/mermaid-diagram-tab-url-changed.svg)
-

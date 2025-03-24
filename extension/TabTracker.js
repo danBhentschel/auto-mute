@@ -5,8 +5,6 @@ class TabTracker {
   /** @member {ListExpert} */
   #listExpert;
   /** @member {Object} */
-  #tabState = {};
-  /** @member {Object} */
   #logger;
 
   /**
@@ -25,52 +23,34 @@ class TabTracker {
   /**
    * @param {Object} tab
    */
-  async muteIfShould(tab) {
+  async muteByApplicationLogic(tab) {
     const listInfo = await this.#listExpert.getListInfo();
-    await this.#muteIfShouldNoListUpdate(listInfo, tab);
-    await this.#updateTabIfListed(listInfo, tab);
+    await this.#mute(listInfo, tab);
   }
 
-  /**
-   * @param {boolean} force - Specifies whether to ignore lists
-   * @param {number} [excludeId] - Used when muting all but current tab
-   */
-  async muteAllTabs(force, excludeId) {
-    const listInfo = await this.#listExpert.getListInfo();
-    const tabs = await this.#getAllTabs();
-    if (!tabs) {
-      return;
-    }
-    for (const tab of tabs) {
-      if (tab.id === excludeId) continue;
-      if (force) {
-        await this.#setMuteOnTab(tab.id, true, true);
-      } else {
-        await this.#muteIfShouldNoListUpdate(listInfo, tab);
-      }
-      await this.#updateTabIfListed(listInfo, tab);
-    }
+  async muteAllTabsByApplicationLogic() {
+    await this.#muteAllTabs(false);
   }
 
-  async toggleMuteOnCurrentTab() {
+  async muteAllTabsByUserRequest() {
+    await this.#muteAllTabs(true);
+  }
+
+  async toggleMuteOnCurrentTabByUserRequest() {
     const tab = await this.#getCurrentTab();
     if (!!tab) {
       await this.#setMuteOnTab(tab.id, !tab.mutedInfo.muted, true);
     }
   }
 
-  async muteOtherTabs() {
+  async muteOtherTabsByUserRequest() {
     const tab = await this.#getCurrentTab();
     if (!!tab) {
-      await this.muteAllTabs(true, tab.id);
+      await this.#muteAllTabs(true, tab.id);
     } else {
       this.#logger.warn("Could not determine current tab");
-      await this.muteAllTabs(true);
+      await this.#muteAllTabs(true);
     }
-  }
-
-  async applyMuteRulesToAllTabs() {
-    await this.muteAllTabs(false);
   }
 
   /**
@@ -78,15 +58,7 @@ class TabTracker {
    * @param {number} removedTabId
    */
   async onTabReplaced(addedTabId, removedTabId) {
-    if (this.#tabState[removedTabId]) {
-      this.#logger.log(
-        `${removedTabId}: ${JSON.stringify(this.#tabState[removedTabId])}`
-      );
-      this.#tabState[addedTabId] = this.#tabState[removedTabId];
-      delete this.#tabState[removedTabId];
-    }
-
-    await this.#muteIfShouldById(addedTabId);
+    await this.#muteById(addedTabId);
   }
 
   /**
@@ -95,33 +67,23 @@ class TabTracker {
    * @param {string} url
    */
   async onTabUrlChanged(tabId) {
-    await this.#muteIfShouldById(tabId);
-  }
-
-  /**
-   * @param {number} tabId
-   * @param {boolean} isMuted
-   */
-  onTabMutedByUser(tabId, isMuted) {
-    if (!this.#tabState[tabId]) {
-      this.#tabState[tabId] = {};
-    }
-    this.#tabState[tabId].muted = isMuted;
-    this.#logger.log(tabId + ": muted -> " + isMuted);
+    await this.#muteById(tabId);
   }
 
   async addOrRemoveCurrentPageInList() {
     const tab = await this.#getCurrentTab();
     if (!tab) return;
-    const isInList = await this.#listExpert.addOrRemoveUrlInList(tab.url);
-    await this.#updateListedTab(tab.id, isInList);
+    await this.#listExpert.addOrRemoveUrlInList(tab.url);
+    await this.#unmuteAllTabs();
+    await this.muteAllTabsByApplicationLogic();
   }
 
   async addOrRemoveCurrentDomainInList() {
     const tab = await this.#getCurrentTab();
     if (!tab) return;
-    const isInList = await this.#listExpert.addOrRemoveDomainInList(tab.url);
-    await this.#updateListedTab(tab.id, isInList);
+    await this.#listExpert.addOrRemoveDomainInList(tab.url);
+    await this.#unmuteAllTabs();
+    await this.muteAllTabsByApplicationLogic();
   }
 
   /**
@@ -130,6 +92,17 @@ class TabTracker {
   async isCurrentTabMuted() {
     const tab = await this.#getCurrentTab();
     return tab?.mutedInfo?.muted ?? false;
+  }
+
+  /**
+   * @returns {Promise<boolean>}
+   */
+  async isCurrentTabMutedByExtension() {
+    const tab = await this.#getCurrentTab();
+    return (
+      (tab?.mutedInfo?.muted ?? false) &&
+      tab?.mutedInfo?.extensionId === this.#chrome.runtime.id
+    );
   }
 
   /**
@@ -148,6 +121,65 @@ class TabTracker {
     return await this.#listExpert.isExactMatchInList(tab.url);
   }
 
+  async updateSettings(settingsInfo) {
+    if (!settingsInfo) {
+      return;
+    }
+
+    if (settingsInfo.initial?.enabled !== settingsInfo.current?.enabled) {
+      if (settingsInfo.current.enabled) {
+        await this.muteAllTabsByApplicationLogic();
+      } else {
+        await this.#unmuteAllTabs();
+      }
+    }
+
+    if (
+      settingsInfo.initial?.allowOrBlockList !==
+      settingsInfo.current?.allowOrBlockList
+    ) {
+      await this.#unmuteAllTabs();
+      await this.muteAllTabsByApplicationLogic();
+    }
+
+    if (
+      settingsInfo.initial?.usingAllowList !==
+      settingsInfo.current?.usingAllowList
+    ) {
+      await this.#unmuteAllTabs();
+      await this.muteAllTabsByApplicationLogic();
+    }
+  }
+
+  async #muteAllTabs(byUserRequest, excludeId) {
+    const listInfo = await this.#listExpert.getListInfo();
+    const tabs = await this.#getAllTabs();
+    if (!tabs) {
+      return;
+    }
+    for (const tab of tabs) {
+      if (tab.id === excludeId) continue;
+      if (byUserRequest) {
+        await this.#setMuteOnTab(tab.id, true, true);
+      } else {
+        await this.#mute(listInfo, tab);
+      }
+    }
+  }
+
+  async #unmuteAllTabs() {
+    const extensionId = this.#chrome.runtime.id;
+    const tabs = await this.#getAllTabs();
+    if (!tabs) {
+      return;
+    }
+    for (const tab of tabs) {
+      if (tab.mutedInfo.extensionId === extensionId) {
+        await this.#setMuteOnTab(tab.id, false, true);
+      }
+    }
+  }
+
   /**
    * @param {number} tabId
    * @param {boolean} muted
@@ -156,12 +188,14 @@ class TabTracker {
   async #setMuteOnTab(tabId, muted, force) {
     const shouldMute = !!force || (await this.#extensionOptions.getEnabled());
     if (shouldMute) {
-      this.#chrome.tabs.update(tabId, { muted: muted });
+      const tab = await this.#getTabById(tabId);
+      // I don't think this check is necessary, but it's difficult to verify
+      // that setting the mute state to the same value will not update the
+      // tab's extensionId. So, I'm going to leave this check in place.
+      if (tab?.mutedInfo?.muted !== muted) {
+        await this.#chrome.tabs.update(tabId, { muted });
+      }
     }
-    if (!this.#tabState[tabId]) {
-      this.#tabState[tabId] = {};
-    }
-    this.#tabState[tabId].muted = muted;
     this.#logger.log(`${tabId}: muted -> ${muted}`);
   }
 
@@ -169,48 +203,9 @@ class TabTracker {
    * @param {ListInfo} listInfo
    * @param {Object} tab
    */
-  async #muteIfShouldNoListUpdate(listInfo, tab) {
+  async #mute(listInfo, tab) {
     const shouldMute = await this.#shouldMute(listInfo, tab.url);
     await this.#setMuteOnTab(tab.id, shouldMute);
-  }
-
-  /**
-   * @param {ListInfo} listInfo
-   * @param {Object} tab
-   */
-  async #updateTabIfListed(listInfo, tab) {
-    const isInList = await this.#listExpert.isInList(
-      listInfo.listOfPages,
-      tab.url
-    );
-    await this.#updateListedTab(tab.id, isInList);
-  }
-
-  /**
-   * @param {number} tabId
-   * @param {boolean} isInList
-   */
-  async #updateListedTab(tabId, isInList) {
-    const usingShouldNotMuteList =
-      await this.#extensionOptions.getUsingShouldNotMuteList();
-    if (!this.#tabState[tabId]) {
-      this.#tabState[tabId] = { muted: !usingShouldNotMuteList };
-    }
-    if (this.#tabState[tabId].isInList === isInList) return;
-    this.#tabState[tabId].isInList = isInList;
-    this.#logger.log(`${tabId}: isInList -> ${isInList}`);
-    /*
-        if (isInList) {
-            this.#tabState[tabId].changeWhenLeavingListed = this.#tabState[tabId].muted !== usingShouldNotMuteList;
-            await this.#setMuteOnTab(tabId, usingShouldNotMuteList);
-        } else {
-            if (this.#tabState[tabId].changeWhenLeavingListed) {
-                await this.#setMuteOnTab(tabId, !usingShouldNotMuteList);
-                this.#tabState[tabId].changeWhenLeavingListed = false;
-            }
-        }
-        */
-    this.#logger.log(`${tabId}: ${JSON.stringify(this.#tabState[tabId])}`);
   }
 
   /**
@@ -218,42 +213,25 @@ class TabTracker {
    * @returns {Promise<Object>}
    */
   async #getTabById(tabId) {
-    return await new Promise((resolve) => {
-      this.#chrome.tabs.get(tabId, (tab) => {
-        resolve(tab);
-      });
-    }).catch((err) => {
-      throw err;
-    });
+    return await this.#chrome.tabs.get(tabId);
   }
 
   /**
    * @returns {Promise<Object>}
    */
   async #getCurrentTab() {
-    return await new Promise((resolve) => {
-      this.#chrome.tabs.query(
-        { active: true, lastFocusedWindow: true },
-        (tabs) => {
-          resolve(tabs?.length ? tabs[0] : null);
-        }
-      );
-    }).catch((err) => {
-      throw err;
+    const tabs = await this.#chrome.tabs.query({
+      active: true,
+      lastFocusedWindow: true,
     });
+    return tabs?.length ? tabs[0] : null;
   }
 
   /**
    * @returns {Promise<List<Object>>}
    */
   async #getAllTabs() {
-    return await new Promise((resolve) => {
-      this.#chrome.tabs.query({}, (tabs) => {
-        resolve(tabs);
-      });
-    }).catch((err) => {
-      throw err;
-    });
+    return await this.#chrome.tabs.query({});
   }
 
   /**
@@ -262,20 +240,21 @@ class TabTracker {
    * @returns {Promise<boolean>}
    */
   async #shouldMute(listInfo, url) {
+    this.#logger.log(`Checking ${url} against ${listInfo.listOfPages}`);
     const inList = await this.#listExpert.isInList(listInfo.listOfPages, url);
     return (
-      (listInfo.isListOfPagesToMute && inList) ||
-      (!listInfo.isListOfPagesToMute && !inList)
+      (!listInfo.isAllowedAudioList && inList) ||
+      (listInfo.isAllowedAudioList && !inList)
     );
   }
 
   /**
    * @param {number} tabId
    */
-  async #muteIfShouldById(tabId) {
+  async #muteById(tabId) {
     const tab = await this.#getTabById(tabId);
     if (tab) {
-      await this.muteIfShould(tab);
+      await this.muteByApplicationLogic(tab);
     } else {
       this.#logger.log(this.#chrome.runtime.lastError.message);
     }

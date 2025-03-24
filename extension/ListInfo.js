@@ -1,24 +1,24 @@
 class ListInfo {
   /** @member {boolean} */
-  #isListOfPagesToMute;
+  #isAllowedAudioList;
 
   /** @member {string[]} */
   #listOfPages;
 
   /**
-   * @param {boolean} isListOfPagesToMute
+   * @param {boolean} isAllowedAudioList
    * @param {string[]} listOfPages
    */
-  constructor(isListOfPagesToMute, listOfPages) {
-    this.#isListOfPagesToMute = isListOfPagesToMute;
+  constructor(isAllowedAudioList, listOfPages) {
+    this.#isAllowedAudioList = isAllowedAudioList;
     this.#listOfPages = listOfPages;
   }
 
   /**
    * @returns {boolean}
    */
-  get isListOfPagesToMute() {
-    return this.#isListOfPagesToMute;
+  get isAllowedAudioList() {
+    return this.#isAllowedAudioList;
   }
 
   /**
