@@ -53,16 +53,6 @@ class NotificationsExpert {
       );
     }
 
-    if (items.newFeatures < 20200) {
-      notificationOptions.title = "New features in AutoMute 2.2";
-      notificationOptions.message =
-        "AutoMute has a new feature. You can now use regular expressions when defining URL rules.";
-      await this.#chrome.notifications.create(
-        "new-features-2.2",
-        notificationOptions
-      );
-    }
-
     if (items.newFeatures < 30000) {
       notificationOptions.title = "New features in AutoMute 3.0";
       notificationOptions.message =

@@ -166,6 +166,9 @@ describe("service_worker.js", () => {
         },
       },
     },
+    notifications: {
+      create: jest.fn(),
+    },
   };
 
   const logger = {
@@ -176,6 +179,8 @@ describe("service_worker.js", () => {
   async function startExtension() {
     await import("../extension/service_worker.js");
     // Wait for everything in the service worker to settle
+    await new Promise(process.nextTick);
+    // Do it again to get newly queued events
     await new Promise(process.nextTick);
   }
 
@@ -237,27 +242,21 @@ describe("service_worker.js", () => {
     await new Promise(process.nextTick);
   }
 
-  let savedSelfChrome;
-  let savedSelfConsole;
-  let savedWindowChrome;
-  let savedWindowConsole;
-  let savedWindowMatchMedia;
-  let savedWindowSetInterval;
-  let savedWindowClose;
-  let savedWindowSetTimeout;
+  let savedChrome;
+  let savedConsole;
+  let savedMatchMedia;
+  let savedSetInterval;
+  let savedClose;
+  let savedSetTimeout;
 
   beforeEach(async () => {
-    savedSelfChrome = self.chrome;
-    savedSelfConsole = self.console;
-    savedWindowChrome = window.chrome;
-    savedWindowConsole = window.console;
-    savedWindowMatchMedia = window.matchMedia;
-    savedWindowSetInterval = window.setInterval;
-    savedWindowClose = window.close;
-    savedWindowSetTimeout = window.setTimeout;
+    savedChrome = window.chrome;
+    savedConsole = window.console;
+    savedMatchMedia = window.matchMedia;
+    savedSetInterval = window.setInterval;
+    savedClose = window.close;
+    savedSetTimeout = window.setTimeout;
 
-    self.chrome = mockChrome;
-    self.console = logger;
     window.chrome = mockChrome;
     window.console = logger;
     window.matchMedia = (query) => {
@@ -286,14 +285,12 @@ describe("service_worker.js", () => {
     commandsOnCommandListener = () => {};
     jest.resetModules();
 
-    self.chrome = savedSelfChrome;
-    self.console = savedSelfConsole;
-    window.chrome = savedWindowChrome;
-    window.console = savedWindowConsole;
-    window.matchMedia = savedWindowMatchMedia;
-    window.setInterval = savedWindowSetInterval;
-    window.close = savedWindowClose;
-    window.setTimeout = savedWindowSetTimeout;
+    window.chrome = savedChrome;
+    window.console = savedConsole;
+    window.matchMedia = savedMatchMedia;
+    window.setInterval = savedSetInterval;
+    window.close = savedClose;
+    window.setTimeout = savedSetTimeout;
 
     tabOnCreatedListener = async () => {};
     tabOnReplacedListener = async () => {};
@@ -2262,5 +2259,68 @@ google.com",
     });
   });
 
-  describe("notifications", () => {});
+  describe("notifications", () => {
+    it("should not show any notification for a new installation", async () => {
+      await startExtension();
+
+      await timeoutListener();
+
+      // Wait for the events to be processed
+      await new Promise(process.nextTick);
+
+      expect(mockChrome.notifications.create).not.toHaveBeenCalled();
+    });
+
+    it("should show an update notification when upgrading from 2.1", async () => {
+      storage.newFeatures = 20100;
+      await startExtension();
+
+      let options;
+      mockChrome.notifications.create.mockImplementation((_id, opts) => {
+        options = opts;
+      });
+
+      await timeoutListener();
+
+      // Wait for the events to be processed
+      await new Promise(process.nextTick);
+
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(1);
+      expect(options.title).toBe("New features in AutoMute 3.0");
+    });
+
+    it("should show two update notifications when upgrading from 2.0", async () => {
+      storage.newFeatures = 20000;
+      await startExtension();
+
+      let options;
+      mockChrome.notifications.create.mockImplementation((_id, opts) => {
+        options = opts;
+      });
+
+      await timeoutListener();
+
+      // Wait for the events to be processed
+      await new Promise(process.nextTick);
+
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(2);
+    });
+
+    it("should show three update notifications when upgrading from 1.0", async () => {
+      storage.newFeatures = 10000;
+      await startExtension();
+
+      let options;
+      mockChrome.notifications.create.mockImplementation((_id, opts) => {
+        options = opts;
+      });
+
+      await timeoutListener();
+
+      // Wait for the events to be processed
+      await new Promise(process.nextTick);
+
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(3);
+    });
+  });
 });
