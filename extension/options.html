@@ -4,8 +4,43 @@
     <title>AutoMute Options</title>
     <style>
       body {
-        padding: 10px;
-        position: relative;
+        /* Default light theme */
+        background-color: white;
+        color: black;
+      }
+
+      /* Dark theme styles using prefers-color-scheme */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #121212;
+          color: #e0e0e0;
+        }
+
+        #status {
+          color: darkgray;
+        }
+      }
+
+      hr {
+        border-top: 1px solid #ccc; /* Light theme default */
+      }
+
+      @media (prefers-color-scheme: dark) {
+        hr {
+          border-top: 1px solid #555; /* Dark theme hr color */
+        }
+      }
+
+      #url-list {
+        background-color: white; /* Default light theme */
+        color: black;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        #url-list {
+          background-color: #333; /* Dark theme background */
+          color: #e0e0e0; /* Dark theme text color */
+        }
       }
     </style>
     <script src="options.js"></script>
@@ -19,8 +54,8 @@
     </div>
 
     <div style="padding-top: 12px; padding-bottom: 12px">
-      <span
-        >When the toggle is set to "allow mode," only the pages you list will
+      <span>
+        When the toggle is set to "allow mode," only the pages you list will
         play sound while all other pages are muted. When it's set to "block
         mode," only the pages you list will be muted while all others play
         sound.</span
@@ -65,8 +100,8 @@
       </div>
 
       <div style="padding-top: 10px">
-        <span style="color: darkgray"
-          ><b>NOTE:</b> You can also use regular expression syntax to indicate
+        <span style="color: darkgray">
+          <b>NOTE:</b> You can also use regular expression syntax to indicate
           URL groups if you surround the URL with backtick (`) characters.</span
         >
       </div>
