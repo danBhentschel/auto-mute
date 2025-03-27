@@ -9,7 +9,7 @@
         command: "change-color-scheme",
         data: { scheme },
       });
-      _console.log("Color scheme change response:", response);
+      _console.log(`Color scheme change response: ${JSON.stringify(response)}`);
       last_scheme = response.systemColorScheme;
     } catch (e) {
       _console.error(e);
