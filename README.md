@@ -7,3 +7,7 @@ nvm use
 npm install
 NODE_OPTIONS="--experimental-vm-modules" npx jest --watchAll
 ```
+
+## Extension page in the Chrome Web Store
+
+https://chromewebstore.google.com/detail/automute/kjcdcbhfpjkcjinohfaaihpcmpnpmpie?authuser=0&hl=en
