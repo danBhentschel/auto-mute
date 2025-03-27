@@ -106,7 +106,6 @@ class AutoMuteExtension {
     );
 
     await this.#tabTracker.muteAllTabsByApplicationLogic();
-    await this.#iconSwitcher.updateIcon();
   }
 
   /**
@@ -181,8 +180,12 @@ class AutoMuteExtension {
         break;
 
       case "change-color-scheme":
-        this.#iconSwitcher.setSystemColorScheme(data.scheme);
-        break;
+        this.#iconSwitcher
+          .setSystemColorScheme(data.scheme)
+          .then((systemColorScheme) => {
+            sendResponse({ systemColorScheme });
+          });
+        return true;
 
       default:
         this.#handleCommand(command);

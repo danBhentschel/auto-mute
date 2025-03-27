@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
+import NotificationsExpert from "../extension/NotificationsExpert.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -2269,6 +2270,20 @@ google.com",
       await new Promise(process.nextTick);
 
       expect(mockChrome.notifications.create).not.toHaveBeenCalled();
+      expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
+    });
+
+    it("should not show any notifications when upgrading from 3.0", async () => {
+      storage.newFeatures = 30000;
+      await startExtension();
+
+      await timeoutListener();
+
+      // Wait for the events to be processed
+      await new Promise(process.nextTick);
+
+      expect(mockChrome.notifications.create).not.toHaveBeenCalled();
+      expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
     it("should show an update notification when upgrading from 2.1", async () => {
@@ -2287,6 +2302,7 @@ google.com",
 
       expect(mockChrome.notifications.create).toHaveBeenCalledTimes(1);
       expect(options.title).toBe("New features in AutoMute 3.0");
+      expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
     it("should show two update notifications when upgrading from 2.0", async () => {
@@ -2304,6 +2320,7 @@ google.com",
       await new Promise(process.nextTick);
 
       expect(mockChrome.notifications.create).toHaveBeenCalledTimes(2);
+      expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
     it("should show three update notifications when upgrading from 1.0", async () => {
@@ -2321,6 +2338,7 @@ google.com",
       await new Promise(process.nextTick);
 
       expect(mockChrome.notifications.create).toHaveBeenCalledTimes(3);
+      expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
   });
 });

@@ -1,4 +1,7 @@
 class NotificationsExpert {
+  static get CURRENT_VERSION() {
+    return 30001;
+  }
   #chrome;
 
   /**
@@ -15,10 +18,18 @@ class NotificationsExpert {
     }, 3000);
   }
 
+  async #setCurrentVersion() {
+    await this.#chrome.storage.sync.set({
+      newFeatures: NotificationsExpert.CURRENT_VERSION,
+    });
+  }
+
   async #run() {
-    const items = await this.#chrome.storage.sync.get({ newFeatures: 30000 });
-    await this.#chrome.storage.sync.set({ newFeatures: 30000 });
-    if (items.newFeatures >= 30000) {
+    const items = await this.#chrome.storage.sync.get({
+      newFeatures: NotificationsExpert.CURRENT_VERSION,
+    });
+    if (items.newFeatures >= NotificationsExpert.CURRENT_VERSION) {
+      await this.#setCurrentVersion();
       return;
     }
 
@@ -62,6 +73,8 @@ class NotificationsExpert {
         notificationOptions
       );
     }
+
+    await this.#setCurrentVersion();
   }
 }
 
