@@ -122,6 +122,7 @@ describe("AutoMuteExtension ->", () => {
       applyMute: async () => {},
       isCurrentTabInList: async () => {},
       isDomainOfCurrentTabInList: async () => {},
+      updateSettings: async () => {},
     };
 
     mockSwitcher = {
@@ -152,13 +153,6 @@ describe("AutoMuteExtension ->", () => {
     await extension.start();
 
     expect(muteAllTabsSpy).toHaveBeenCalled();
-  });
-
-  it("should update the icon on start", async () => {
-    const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
-    await extension.start();
-
-    expect(updateIconSpy).toHaveBeenCalled();
   });
 
   it("should try to mute any newly created tab", async () => {
@@ -550,5 +544,38 @@ describe("AutoMuteExtension ->", () => {
 
     expect(isDomainListedSpy).toHaveBeenCalled();
     expect(isDomainListed).toBe(true);
+  });
+
+  it("should update the settings for update-settings message", async () => {
+    await extension.start();
+
+    const updateSettingsSpy = jest.spyOn(mockTracker, "updateSettings");
+    const result = onMessageListener({ command: "update-settings" });
+    expect(result).toBe(false);
+
+    // Wait for promises to resolve
+    await new Promise(process.nextTick);
+
+    expect(updateSettingsSpy).toHaveBeenCalled();
+  });
+
+  it("should respond properly to a change-color-scheme message", async () => {
+    jest.spyOn(mockSwitcher, "setSystemColorScheme").mockResolvedValue("dark");
+    await extension.start();
+
+    let systemColorScheme = "unset";
+    const result = onMessageListener(
+      { command: "change-color-scheme", data: { scheme: "dark" } },
+      "sender",
+      (response) => {
+        systemColorScheme = response.systemColorScheme;
+      }
+    );
+    expect(result).toBe(true);
+
+    // Wait for promises to resolve
+    await new Promise(process.nextTick);
+
+    expect(systemColorScheme).toBe("dark");
   });
 });

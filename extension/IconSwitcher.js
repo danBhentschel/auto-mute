@@ -17,7 +17,7 @@ class IconSwitcher {
     this.#chrome = chromeInstance;
     this.#tabTracker = tabTracker;
     this.#logger = logger;
-    this.#systemColorScheme = "light";
+    this.#systemColorScheme = "unset";
   }
 
   /**
@@ -41,21 +41,21 @@ class IconSwitcher {
   async setSystemColorScheme(scheme) {
     this.#logger.log(`System color scheme changed to ${scheme}`);
     this.#systemColorScheme = scheme;
-    await this.#updateIcon();
+    await this.updateIcon();
+    return scheme;
   }
 
   /**
    * @returns {Promise<void>}
    */
   async updateIcon() {
-    await this.start();
-    await this.#updateIcon();
-  }
+    if (this.#systemColorScheme === "unset") {
+      this.#logger.log(
+        "Not updating icon because system color scheme is unset"
+      );
+      return;
+    }
 
-  /**
-   * @returns {Promise<void>}
-   */
-  async #updateIcon() {
     const onOrOff = (await this.#tabTracker.isCurrentTabMutedByExtension())
       ? "off"
       : "on";
