@@ -58,6 +58,7 @@ class AutoMuteExtension {
     this.#chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
       try {
         if (changeInfo.url) {
+          this.#logger.log(tabId + ": updated -> " + changeInfo.url);
           await this.#tabTracker.onTabUrlChanged(tabId, changeInfo.url);
           await this.#iconSwitcher.updateIcon();
         }
@@ -68,6 +69,7 @@ class AutoMuteExtension {
 
     this.#chrome.tabs.onActivated.addListener(async () => {
       try {
+        this.#logger.log("Tab activated");
         await this.#iconSwitcher.updateIcon();
       } catch (e) {
         this.#logger.error(e);
@@ -76,6 +78,7 @@ class AutoMuteExtension {
 
     this.#chrome.windows.onFocusChanged.addListener(async () => {
       try {
+        this.#logger.log("Window focus changed");
         await this.#iconSwitcher.updateIcon();
       } catch (e) {
         this.#logger.error(e);
@@ -84,6 +87,7 @@ class AutoMuteExtension {
 
     this.#chrome.commands.onCommand.addListener(async (command) => {
       try {
+        this.#logger.log(`Command: ${command}`);
         await this.#handleCommand(command);
       } catch (e) {
         this.#logger.error(e);

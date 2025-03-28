@@ -6,7 +6,7 @@ class IconSwitcher {
   /** @member {Object} */
   #logger;
   /** @member {'dark' | 'light' | 'unset'} */
-  #systemColorScheme = "unset";
+  #systemColorScheme;
 
   /**
    * @param {Object} chromeInstance
@@ -17,6 +17,8 @@ class IconSwitcher {
     this.#chrome = chromeInstance;
     this.#tabTracker = tabTracker;
     this.#logger = logger;
+    this.#systemColorScheme = "unset";
+    this.#getSystemColorScheme();
   }
 
   /**
@@ -52,7 +54,7 @@ class IconSwitcher {
     // We need to set the system color scheme in the storage to persist it
     // because the service worker is not always running, so in-memory state
     // will sometimes be lost.
-    await this.#chrome.storage.session.set({
+    await this.#chrome.storage.local.set({
       systemColorScheme: scheme,
     });
     this.#systemColorScheme = scheme;
@@ -67,11 +69,16 @@ class IconSwitcher {
     // will sometimes be lost.
     if (this.#systemColorScheme === "unset") {
       this.#logger.log("Fetching system color scheme from storage");
-      this.#systemColorScheme = await this.#chrome.storage.session.get({
-        systemColorScheme: "unset",
-      }).systemColorScheme;
+      this.#systemColorScheme = (
+        await this.#chrome.storage.local.get({
+          systemColorScheme: "unset",
+        })
+      ).systemColorScheme;
+      this.#logger.log(
+        `System color scheme fetched from storage: ${this.#systemColorScheme}`
+      );
     }
-    return this.#systemColorScheme;
+    return this.#systemColorScheme || "unset";
   }
 
   /**
