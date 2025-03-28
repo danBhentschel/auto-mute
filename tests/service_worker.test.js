@@ -10,7 +10,7 @@ const __dirname = path.dirname(__filename);
 
 describe("service_worker.js", () => {
   let storage = {};
-  let sessionStorage = {};
+  let localStorage = {};
   let tabs = [];
   const extensionId = "my-extension-id";
   let colorScheme = "light";
@@ -71,12 +71,12 @@ describe("service_worker.js", () => {
           return Promise.resolve(Object.keys(storage));
         },
       },
-      session: {
+      local: {
         get: async (values) => {
-          return await getStorage(sessionStorage, values);
+          return await getStorage(localStorage, values);
         },
         set: async (values) => {
-          return await setStorage(sessionStorage, values);
+          return await setStorage(localStorage, values);
         },
       },
     },
