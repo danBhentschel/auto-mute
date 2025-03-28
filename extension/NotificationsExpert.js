@@ -1,6 +1,6 @@
 class NotificationsExpert {
   static get CURRENT_VERSION() {
-    return 30001;
+    return 30002;
   }
   #chrome;
 

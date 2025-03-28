@@ -2,7 +2,6 @@
   let last_scheme = "unset";
 
   async function send_scheme(scheme) {
-    last_scheme = scheme;
     _console.log(`Sending system color scheme: ${scheme}`);
     try {
       const response = await _chrome.runtime.sendMessage({
@@ -12,6 +11,7 @@
       _console.log(`Color scheme change response: ${JSON.stringify(response)}`);
       last_scheme = response.systemColorScheme;
     } catch (e) {
+      last_scheme = "unset";
       _console.error(e);
     }
   }

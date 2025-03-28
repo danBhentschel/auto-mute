@@ -10,6 +10,7 @@ const __dirname = path.dirname(__filename);
 
 describe("service_worker.js", () => {
   let storage = {};
+  let sessionStorage = {};
   let tabs = [];
   const extensionId = "my-extension-id";
   let colorScheme = "light";
@@ -25,31 +26,37 @@ describe("service_worker.js", () => {
   let tabOnActivatedListener = async () => {};
   let windowsOnFocusChangedListener = async () => {};
 
+  async function getStorage(storageObj, values) {
+    // If values is an object, return the values of the keys in the object
+    if (typeof values === "object") {
+      const result = {};
+      for (const [key, value] of Object.entries(values)) {
+        if (!Object.prototype.hasOwnProperty.call(storageObj, key)) {
+          storageObj[key] = value;
+        }
+        result[key] = storageObj[key];
+      }
+
+      return result;
+    }
+
+    return storageObj[values];
+  }
+
+  async function setStorage(storageObj, values) {
+    for (const [key, value] of Object.entries(values)) {
+      storageObj[key] = value;
+    }
+  }
+
   let mockChrome = {
     storage: {
       sync: {
-        get: (values) => {
-          // If values is an object, return the values of the keys in the object
-          if (typeof values === "object") {
-            const result = {};
-            for (const [key, value] of Object.entries(values)) {
-              if (!Object.prototype.hasOwnProperty.call(storage, key)) {
-                storage[key] = value;
-              }
-              result[key] = storage[key];
-            }
-
-            return Promise.resolve(result);
-          }
-
-          return Promise.resolve(storage[values]);
+        get: async (values) => {
+          return await getStorage(storage, values);
         },
-        set: (values) => {
-          for (const [key, value] of Object.entries(values)) {
-            storage[key] = value;
-          }
-
-          return Promise.resolve();
+        set: async (values) => {
+          return await setStorage(storage, values);
         },
         remove: (keys) => {
           if (Array.isArray(keys)) {
@@ -62,6 +69,14 @@ describe("service_worker.js", () => {
         },
         getKeys: () => {
           return Promise.resolve(Object.keys(storage));
+        },
+      },
+      session: {
+        get: async (values) => {
+          return await getStorage(sessionStorage, values);
+        },
+        set: async (values) => {
+          return await setStorage(sessionStorage, values);
         },
       },
     },
