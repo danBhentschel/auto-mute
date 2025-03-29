@@ -160,4 +160,54 @@ describe("ExtensionOptions ->", () => {
     shouldThrow = true;
     await expect(options.switchListType()).rejects.toThrow("Test error");
   });
+
+  // New tests for icon type
+  it("should return the icon type from storage", async () => {
+    storage.iconType = "context";
+    let iconType = await options.getIconType();
+    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
+    expect(iconType).toBe("context");
+
+    storage.iconType = "static";
+    iconType = await options.getIconType();
+    expect(iconType).toBe("static");
+  });
+
+  it("should return a default icon type of 'static' from storage", async () => {
+    const iconType = await options.getIconType();
+    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
+    expect(iconType).toBe("static");
+  });
+
+  it("should properly handle rejected promise when getting icon type", async () => {
+    shouldThrow = true;
+    await expect(options.getIconType()).rejects.toThrow("Test error");
+  });
+
+  // New tests for icon color
+  it("should return the icon color from storage", async () => {
+    storage.iconColor = "white";
+    let iconColor = await options.getIconColor();
+    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
+    expect(iconColor).toBe("white");
+
+    storage.iconColor = "system";
+    iconColor = await options.getIconColor();
+    expect(iconColor).toBe("system");
+
+    storage.iconColor = "black";
+    iconColor = await options.getIconColor();
+    expect(iconColor).toBe("black");
+  });
+
+  it("should return a default icon color of 'system' from storage", async () => {
+    const iconColor = await options.getIconColor();
+    expect(mockChrome.storage.sync.get).toHaveBeenCalled();
+    expect(iconColor).toBe("system");
+  });
+
+  it("should properly handle rejected promise when getting icon color", async () => {
+    shouldThrow = true;
+    await expect(options.getIconColor()).rejects.toThrow("Test error");
+  });
 });

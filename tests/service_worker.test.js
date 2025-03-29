@@ -11,6 +11,7 @@ const __dirname = path.dirname(__filename);
 describe("service_worker.js", () => {
   let storage = {};
   let localStorage = {};
+  let sessionStorage = {};
   let tabs = [];
   const extensionId = "my-extension-id";
   let colorScheme = "light";
@@ -24,6 +25,7 @@ describe("service_worker.js", () => {
   let timeoutListener = async () => {};
   let tabOnUpdatedListener = async () => {};
   let tabOnActivatedListener = async () => {};
+  let tabOnRemovedListener = async () => {};
   let windowsOnFocusChangedListener = async () => {};
 
   async function getStorage(storageObj, values) {
@@ -79,6 +81,14 @@ describe("service_worker.js", () => {
           return await setStorage(localStorage, values);
         },
       },
+      session: {
+        get: async (values) => {
+          return await getStorage(sessionStorage, values);
+        },
+        set: async (values) => {
+          return await setStorage(sessionStorage, values);
+        },
+      },
     },
     tabs: {
       onCreated: {
@@ -99,6 +109,11 @@ describe("service_worker.js", () => {
       onActivated: {
         addListener: (listener) => {
           tabOnActivatedListener = listener;
+        },
+      },
+      onRemoved: {
+        addListener: (listener) => {
+          tabOnRemovedListener = listener;
         },
       },
       get: (tabId) => {
@@ -296,9 +311,6 @@ describe("service_worker.js", () => {
     tabs = [];
     colorScheme = "light";
     offscreenDocumentLoaded = false;
-    tabOnCreatedListener = () => {};
-    tabOnReplacedListener = () => {};
-    commandsOnCommandListener = () => {};
     jest.resetModules();
 
     window.chrome = savedChrome;
@@ -316,6 +328,7 @@ describe("service_worker.js", () => {
     timeoutListener = async () => {};
     tabOnUpdatedListener = async () => {};
     tabOnActivatedListener = async () => {};
+    tabOnRemovedListener = async () => {};
     windowsOnFocusChangedListener = async () => {};
 
     document.body.innerHTML = "";
@@ -340,6 +353,8 @@ describe("service_worker.js", () => {
   "allowOrBlockList": "www.youtube.com
 google.com",
   "enabled": true,
+  "iconColor": "system",
+  "iconType": "static",
   "usingAllowList": true,
 }
 `);
@@ -546,221 +561,681 @@ google.com",
   });
 
   describe("the icon", () => {
-    it("should update when a muted tab is activated", async () => {
-      storage.usingAllowList = true;
-      storage.allowOrBlockList = "https://www.youtube.com";
-      tabs = [
-        {
-          id: 1,
-          url: "https://www.youtube.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: true,
-        },
-        {
-          id: 2,
-          url: "https://www.google.com",
-          mutedInfo: { muted: false },
-          active: false,
-          lastFocusedWindow: true,
-        },
-      ];
-      await startExtension();
-
-      // Sanity check
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
+    describe("context-sensitive", () => {
+      beforeEach(async () => {
+        storage.iconType = "context";
       });
-      mockChrome.action.setIcon.mockClear();
 
-      tabs[0].active = false;
-      tabs[1].active = true;
-      await tabOnActivatedListener();
+      describe("system color scheme based", () => {
+        beforeEach(async () => {
+          storage.iconColor = "system";
+        });
 
-      // Wait for everything to settle
-      await new Promise(process.nextTick);
+        it("should update when a muted tab is activated", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: false,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
 
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_off_16.png",
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].active = false;
+          tabs[1].active = true;
+          await tabOnActivatedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+        });
+
+        it("should update when an unmuted tab is activated", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: false,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].active = false;
+          tabs[1].active = true;
+          await tabOnActivatedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+        });
+
+        it("should update when a window with an active unmuted tab is focused", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: false,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].lastFocusedWindow = false;
+          tabs[1].lastFocusedWindow = true;
+          await windowsOnFocusChangedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+        });
+
+        it("should update when a window with an active muted tab is focused", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: false,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].lastFocusedWindow = true;
+          tabs[1].lastFocusedWindow = false;
+          await windowsOnFocusChangedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+        });
+
+        it("should update to muted when the url changes", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].url = "https://www.google.com";
+          await tabOnUpdatedListener(1, { url: "https://www.google.com" });
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+        });
+
+        it("should update to unmuted when the url changes", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].url = "https://www.youtube.com";
+          await tabOnUpdatedListener(1, { url: "https://www.youtube.com" });
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+        });
       });
-    });
 
-    it("should update when an unmuted tab is activated", async () => {
-      storage.usingAllowList = true;
-      storage.allowOrBlockList = "https://www.google.com";
-      tabs = [
-        {
-          id: 1,
-          url: "https://www.youtube.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: true,
-        },
-        {
-          id: 2,
-          url: "https://www.google.com",
-          mutedInfo: { muted: false },
-          active: false,
-          lastFocusedWindow: true,
-        },
-      ];
-      await startExtension();
+      describe("black", () => {
+        beforeEach(async () => {
+          storage.iconColor = "black";
+        });
 
-      // Sanity check
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_off_16.png",
+        it("should update when a muted tab is activated", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: false,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].active = false;
+          tabs[1].active = true;
+          await tabOnActivatedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+        });
+
+        it("should update when an unmuted tab is activated", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: false,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].active = false;
+          tabs[1].active = true;
+          await tabOnActivatedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+        });
+
+        it("should update when a window with an active unmuted tab is focused", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: false,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].lastFocusedWindow = false;
+          tabs[1].lastFocusedWindow = true;
+          await windowsOnFocusChangedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+        });
+
+        it("should update when a window with an active muted tab is focused", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: false,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].lastFocusedWindow = true;
+          tabs[1].lastFocusedWindow = false;
+          await windowsOnFocusChangedListener();
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+        });
+
+        it("should update to muted when the url changes", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].url = "https://www.google.com";
+          await tabOnUpdatedListener(1, { url: "https://www.google.com" });
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+        });
+
+        it("should update to unmuted when the url changes", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].url = "https://www.youtube.com";
+          await tabOnUpdatedListener(1, { url: "https://www.youtube.com" });
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+        });
       });
-      mockChrome.action.setIcon.mockClear();
 
-      tabs[0].active = false;
-      tabs[1].active = true;
-      await tabOnActivatedListener();
+      describe("white", () => {
+        beforeEach(async () => {
+          storage.iconColor = "white";
+        });
 
-      // Wait for everything to settle
-      await new Promise(process.nextTick);
+        it("should update when a muted tab is activated", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: false,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
 
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
-      });
-    });
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
 
-    it("should update when a window with an active unmuted tab is focused", async () => {
-      storage.usingAllowList = true;
-      storage.allowOrBlockList = "https://www.google.com";
-      tabs = [
-        {
-          id: 1,
-          url: "https://www.youtube.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: true,
-        },
-        {
-          id: 2,
-          url: "https://www.google.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: false,
-        },
-      ];
-      await startExtension();
+          tabs[0].active = false;
+          tabs[1].active = true;
+          await tabOnActivatedListener();
 
-      // Sanity check
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_off_16.png",
-      });
-      mockChrome.action.setIcon.mockClear();
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
 
-      tabs[0].lastFocusedWindow = false;
-      tabs[1].lastFocusedWindow = true;
-      await windowsOnFocusChangedListener();
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_off_16.png",
+          });
+        });
 
-      // Wait for everything to settle
-      await new Promise(process.nextTick);
+        it("should update when an unmuted tab is activated", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: false,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
 
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
-      });
-    });
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
 
-    it("should update when a window with an active muted tab is focused", async () => {
-      storage.usingAllowList = true;
-      storage.allowOrBlockList = "https://www.google.com";
-      tabs = [
-        {
-          id: 1,
-          url: "https://www.youtube.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: false,
-        },
-        {
-          id: 2,
-          url: "https://www.google.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: true,
-        },
-      ];
-      await startExtension();
+          tabs[0].active = false;
+          tabs[1].active = true;
+          await tabOnActivatedListener();
 
-      // Sanity check
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
-      });
-      mockChrome.action.setIcon.mockClear();
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
 
-      tabs[0].lastFocusedWindow = true;
-      tabs[1].lastFocusedWindow = false;
-      await windowsOnFocusChangedListener();
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+        });
 
-      // Wait for everything to settle
-      await new Promise(process.nextTick);
+        it("should update when a window with an active unmuted tab is focused", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: false,
+            },
+          ];
+          await startExtension();
 
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_off_16.png",
-      });
-    });
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
 
-    it("should update to muted when the url changes", async () => {
-      storage.usingAllowList = true;
-      storage.allowOrBlockList = "https://www.youtube.com";
-      tabs = [
-        {
-          id: 1,
-          url: "https://www.youtube.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: true,
-        },
-      ];
-      await startExtension();
+          tabs[0].lastFocusedWindow = false;
+          tabs[1].lastFocusedWindow = true;
+          await windowsOnFocusChangedListener();
 
-      // Sanity check
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
-      });
-      mockChrome.action.setIcon.mockClear();
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
 
-      tabs[0].url = "https://www.google.com";
-      await tabOnUpdatedListener(1, { url: "https://www.google.com" });
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+        });
 
-      // Wait for everything to settle
-      await new Promise(process.nextTick);
+        it("should update when a window with an active muted tab is focused", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.google.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: false,
+            },
+            {
+              id: 2,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
 
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_off_16.png",
-      });
-    });
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
 
-    it("should update to unmuted when the url changes", async () => {
-      storage.usingAllowList = true;
-      storage.allowOrBlockList = "https://www.youtube.com";
-      tabs = [
-        {
-          id: 1,
-          url: "https://www.google.com",
-          mutedInfo: { muted: false },
-          active: true,
-          lastFocusedWindow: true,
-        },
-      ];
-      await startExtension();
+          tabs[0].lastFocusedWindow = true;
+          tabs[1].lastFocusedWindow = false;
+          await windowsOnFocusChangedListener();
 
-      // Sanity check
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_off_16.png",
-      });
-      mockChrome.action.setIcon.mockClear();
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
 
-      tabs[0].url = "https://www.youtube.com";
-      await tabOnUpdatedListener(1, { url: "https://www.youtube.com" });
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_off_16.png",
+          });
+        });
 
-      // Wait for everything to settle
-      await new Promise(process.nextTick);
+        it("should update to muted when the url changes", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.youtube.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
 
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].url = "https://www.google.com";
+          await tabOnUpdatedListener(1, { url: "https://www.google.com" });
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_off_16.png",
+          });
+        });
+
+        it("should update to unmuted when the url changes", async () => {
+          storage.usingAllowList = true;
+          storage.allowOrBlockList = "https://www.youtube.com";
+          tabs = [
+            {
+              id: 1,
+              url: "https://www.google.com",
+              mutedInfo: { muted: false },
+              active: true,
+              lastFocusedWindow: true,
+            },
+          ];
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_off_16.png",
+          });
+          mockChrome.action.setIcon.mockClear();
+
+          tabs[0].url = "https://www.youtube.com";
+          await tabOnUpdatedListener(1, { url: "https://www.youtube.com" });
+
+          // Wait for everything to settle
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+        });
       });
     });
   });
@@ -1828,40 +2303,52 @@ google.com",
   });
 
   describe("offscreen document", () => {
-    it("should select the proper icon for dark system color scheme", async () => {
-      colorScheme = "dark";
-      await startExtension();
-
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/dark_on_16.png",
-      });
-    });
-
-    it("should select the proper icon for light system color scheme", async () => {
-      colorScheme = "light";
-      await startExtension();
-
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
-      });
-    });
-
-    it("should respond to a color scheme change", async () => {
-      colorScheme = "light";
-      await startExtension();
-
-      // Sanity check
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/light_on_16.png",
+    describe("context-sensitive icon", () => {
+      beforeEach(() => {
+        storage.iconType = "context";
       });
 
-      colorScheme = "dark";
-      await intervalListener();
+      describe("system color scheme based icon", () => {
+        beforeEach(() => {
+          storage.iconColor = "system";
+        });
 
-      await new Promise(process.nextTick);
+        it("should select the proper icon for dark system color scheme", async () => {
+          colorScheme = "dark";
+          await startExtension();
 
-      expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
-        path: "images/dark_on_16.png",
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+        });
+
+        it("should select the proper icon for light system color scheme", async () => {
+          colorScheme = "light";
+          await startExtension();
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+        });
+
+        it("should respond to a color scheme change", async () => {
+          colorScheme = "light";
+          await startExtension();
+
+          // Sanity check
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/light_on_16.png",
+          });
+
+          colorScheme = "dark";
+          await intervalListener();
+
+          await new Promise(process.nextTick);
+
+          expect(mockChrome.action.setIcon).toHaveBeenCalledWith({
+            path: "images/dark_on_16.png",
+          });
+        });
       });
     });
   });
@@ -2271,6 +2758,288 @@ google.com",
         await timeoutListener();
 
         expect(window.close).toHaveBeenCalled();
+      });
+    });
+
+    describe("icon options", () => {
+      it("should set the initial state for static icon type", async () => {
+        storage.iconType = "static";
+        await startExtension();
+        await loadOptions();
+
+        expect(
+          document.getElementById("radio-static-icon").checked
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-context-icon").checked
+        ).toBeFalsy();
+        expect(
+          document.getElementById("icon-color-options").style.display
+        ).toBe("none");
+      });
+
+      it("should set the initial state for context-sensitive icon type", async () => {
+        storage.iconType = "context";
+        await startExtension();
+        await loadOptions();
+
+        expect(
+          document.getElementById("radio-static-icon").checked
+        ).toBeFalsy();
+        expect(
+          document.getElementById("radio-context-icon").checked
+        ).toBeTruthy();
+        expect(
+          document.getElementById("icon-color-options").style.display
+        ).toBe("block");
+      });
+
+      it("should set the initial state for black icon color", async () => {
+        storage.iconType = "context";
+        storage.iconColor = "black";
+        await startExtension();
+        await loadOptions();
+
+        expect(
+          document.getElementById("radio-black-icon").checked
+        ).toBeTruthy();
+        expect(document.getElementById("radio-white-icon").checked).toBeFalsy();
+        expect(
+          document.getElementById("radio-system-icon").checked
+        ).toBeFalsy();
+      });
+
+      it("should set the initial state for white icon color", async () => {
+        storage.iconType = "context";
+        storage.iconColor = "white";
+        await startExtension();
+        await loadOptions();
+
+        expect(document.getElementById("radio-black-icon").checked).toBeFalsy();
+        expect(
+          document.getElementById("radio-white-icon").checked
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-system-icon").checked
+        ).toBeFalsy();
+      });
+
+      it("should set the initial state for system icon color", async () => {
+        storage.iconType = "context";
+        storage.iconColor = "system";
+        await startExtension();
+        await loadOptions();
+
+        expect(document.getElementById("radio-black-icon").checked).toBeFalsy();
+        expect(document.getElementById("radio-white-icon").checked).toBeFalsy();
+        expect(
+          document.getElementById("radio-system-icon").checked
+        ).toBeTruthy();
+      });
+
+      it("should show color options when context-sensitive icon is selected", async () => {
+        storage.iconType = "static";
+        await startExtension();
+        await loadOptions();
+
+        // Sanity check
+        expect(
+          document.getElementById("icon-color-options").style.display
+        ).toBe("none");
+
+        document.getElementById("radio-static-icon").checked = false;
+        document.getElementById("radio-context-icon").checked = true;
+        document
+          .getElementById("radio-context-icon")
+          .dispatchEvent(new Event("change"));
+
+        expect(
+          document.getElementById("icon-color-options").style.display
+        ).toBe("block");
+      });
+
+      it("should hide color options when static icon is selected", async () => {
+        storage.iconType = "context";
+        await startExtension();
+        await loadOptions();
+
+        // Sanity check
+        expect(
+          document.getElementById("icon-color-options").style.display
+        ).toBe("block");
+
+        document.getElementById("radio-static-icon").checked = true;
+        document.getElementById("radio-context-icon").checked = false;
+        document
+          .getElementById("radio-static-icon")
+          .dispatchEvent(new Event("change"));
+
+        expect(
+          document.getElementById("icon-color-options").style.display
+        ).toBe("none");
+      });
+
+      it("should save static icon type when selected", async () => {
+        storage.iconType = "context";
+        storage.iconColor = "black";
+        await startExtension();
+        await loadOptions();
+
+        document.getElementById("radio-static-icon").checked = true;
+        document.getElementById("radio-context-icon").checked = false;
+        document.getElementById("save").dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.iconType).toBe("static");
+        // Icon color should remain unchanged
+        expect(storage.iconColor).toBe("black");
+      });
+
+      it("should save context icon type and black color when selected", async () => {
+        storage.iconType = "static";
+        storage.iconColor = "system";
+        await startExtension();
+        await loadOptions();
+
+        document.getElementById("radio-static-icon").checked = false;
+        document.getElementById("radio-context-icon").checked = true;
+        document.getElementById("radio-black-icon").checked = true;
+        document.getElementById("radio-white-icon").checked = false;
+        document.getElementById("radio-system-icon").checked = false;
+        document.getElementById("save").dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.iconType).toBe("context");
+        expect(storage.iconColor).toBe("black");
+      });
+
+      it("should save context icon type and white color when selected", async () => {
+        storage.iconType = "static";
+        storage.iconColor = "system";
+        await startExtension();
+        await loadOptions();
+
+        document.getElementById("radio-static-icon").checked = false;
+        document.getElementById("radio-context-icon").checked = true;
+        document.getElementById("radio-black-icon").checked = false;
+        document.getElementById("radio-white-icon").checked = true;
+        document.getElementById("radio-system-icon").checked = false;
+        document.getElementById("save").dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.iconType).toBe("context");
+        expect(storage.iconColor).toBe("white");
+      });
+
+      it("should save context icon type and system color when selected", async () => {
+        storage.iconType = "static";
+        storage.iconColor = "black";
+        await startExtension();
+        await loadOptions();
+
+        document.getElementById("radio-static-icon").checked = false;
+        document.getElementById("radio-context-icon").checked = true;
+        document.getElementById("radio-black-icon").checked = false;
+        document.getElementById("radio-white-icon").checked = false;
+        document.getElementById("radio-system-icon").checked = true;
+        document.getElementById("save").dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(storage.iconType).toBe("context");
+        expect(storage.iconColor).toBe("system");
+      });
+
+      it("should disable icon controls when saving", async () => {
+        await startExtension();
+        await loadOptions();
+
+        document.getElementById("save").dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        expect(
+          document.getElementById("radio-static-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-context-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-black-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-white-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-system-icon").disabled
+        ).toBeTruthy();
+      });
+
+      it("should re-enable icon controls after a delay", async () => {
+        await startExtension();
+        await loadOptions();
+
+        document.getElementById("save").dispatchEvent(new MouseEvent("click"));
+
+        // Wait for the click event to be processed
+        await new Promise(process.nextTick);
+
+        // Sanity check
+        expect(
+          document.getElementById("radio-static-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-context-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-black-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-white-icon").disabled
+        ).toBeTruthy();
+        expect(
+          document.getElementById("radio-system-icon").disabled
+        ).toBeTruthy();
+
+        await timeoutListener();
+
+        expect(
+          document.getElementById("radio-static-icon").disabled
+        ).toBeFalsy();
+        expect(
+          document.getElementById("radio-context-icon").disabled
+        ).toBeFalsy();
+        expect(
+          document.getElementById("radio-black-icon").disabled
+        ).toBeFalsy();
+        expect(
+          document.getElementById("radio-white-icon").disabled
+        ).toBeFalsy();
+        expect(
+          document.getElementById("radio-system-icon").disabled
+        ).toBeFalsy();
+      });
+
+      it("should use system as default icon color when not specified", async () => {
+        // Don't set iconColor in storage to test default
+        storage.iconType = "context";
+        delete storage.iconColor;
+        await startExtension();
+        await loadOptions();
+
+        expect(document.getElementById("radio-black-icon").checked).toBeFalsy();
+        expect(document.getElementById("radio-white-icon").checked).toBeFalsy();
+        expect(
+          document.getElementById("radio-system-icon").checked
+        ).toBeTruthy();
       });
     });
   });

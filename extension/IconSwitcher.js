@@ -5,17 +5,21 @@ class IconSwitcher {
   #tabTracker;
   /** @member {Object} */
   #logger;
+  /** @member {ExtensionOptions} */
+  #options;
   /** @member {'dark' | 'light' | 'unset'} */
   #systemColorScheme;
 
   /**
    * @param {Object} chromeInstance
    * @param {TabTracker} tabTracker
+   * @param {ExtensionOptions} options
    * @param {Object} logger
    */
-  constructor(chromeInstance, tabTracker, logger) {
+  constructor(chromeInstance, tabTracker, options, logger) {
     this.#chrome = chromeInstance;
     this.#tabTracker = tabTracker;
+    this.#options = options;
     this.#logger = logger;
     this.#systemColorScheme = "unset";
     this.#getSystemColorScheme();
@@ -85,20 +89,38 @@ class IconSwitcher {
    * @returns {Promise<void>}
    */
   async updateIcon() {
-    let systemColorScheme = await this.#getSystemColorScheme();
+    const iconType = await this.#options.getIconType();
+    const iconColor = await this.#options.getIconColor();
+    const isMuted = await this.#tabTracker.isCurrentTabMutedByExtension();
+    const onOrOff = isMuted ? "off" : "on";
 
-    if (systemColorScheme === "unset") {
-      this.#logger.log(
-        "System color scheme is unset. Assuming light mode for icon."
-      );
-      systemColorScheme = "light";
+    let path;
+
+    if (iconType === "static") {
+      // Use static Speaker_19.png icon
+      path = "images/Speaker_19.png";
+    } else {
+      // Use dynamic icons based on color preference
+      let colorScheme;
+
+      if (iconColor === "system") {
+        // Use system color scheme
+        colorScheme = await this.#getSystemColorScheme();
+
+        if (colorScheme === "unset") {
+          this.#logger.log(
+            "System color scheme is unset. Assuming light mode for icon."
+          );
+          colorScheme = "light";
+        }
+      } else {
+        // Use user's explicit preference
+        colorScheme = iconColor === "black" ? "light" : "dark";
+      }
+
+      path = `images/${colorScheme}_${onOrOff}_16.png`;
     }
 
-    const onOrOff = (await this.#tabTracker.isCurrentTabMutedByExtension())
-      ? "off"
-      : "on";
-
-    const path = `images/${systemColorScheme}_${onOrOff}_16.png`;
     this.#logger.log(`Setting icon to ${path}`);
     await this.#chrome.action.setIcon({
       path,

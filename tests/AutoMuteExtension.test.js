@@ -18,6 +18,7 @@ describe("AutoMuteExtension ->", () => {
   let onTabReplacedListener;
   let onTabUpdatedListener;
   let onTabActivatedListener;
+  let onTabRemovedListener;
   let onWindowFocusChangedListener;
   let onCommandListener;
   let onMessageListener;
@@ -45,6 +46,9 @@ describe("AutoMuteExtension ->", () => {
         onActivated: {
           addListener: () => {},
         },
+        onRemoved: {
+          addListener: () => {},
+        },
       },
       commands: {
         onCommand: {
@@ -66,6 +70,8 @@ describe("AutoMuteExtension ->", () => {
     onTabCreatedListener = undefined;
     onTabReplacedListener = undefined;
     onTabUpdatedListener = undefined;
+    onTabActivatedListener = undefined;
+    onTabRemovedListener = undefined;
     onCommandListener = undefined;
     onMessageListener = undefined;
 
@@ -88,6 +94,11 @@ describe("AutoMuteExtension ->", () => {
       .spyOn(mockChrome.tabs.onActivated, "addListener")
       .mockImplementation((listener) => {
         onTabActivatedListener = listener;
+      });
+    jest
+      .spyOn(mockChrome.tabs.onRemoved, "addListener")
+      .mockImplementation((listener) => {
+        onTabRemovedListener = listener;
       });
     jest
       .spyOn(mockChrome.windows.onFocusChanged, "addListener")
@@ -118,6 +129,7 @@ describe("AutoMuteExtension ->", () => {
       addOrRemoveCurrentDomainInList: async () => {},
       onTabReplaced: async () => {},
       onTabUrlChanged: async () => {},
+      onTabRemoved: async () => {},
       isCurrentTabMuted: async () => {},
       applyMute: async () => {},
       isCurrentTabInList: async () => {},
@@ -194,6 +206,16 @@ describe("AutoMuteExtension ->", () => {
     await onTabReplacedListener(42, 43);
 
     expect(updateIconSpy).toHaveBeenCalled();
+  });
+
+  it("should call TabTracker.onTabRemoved when a tab is removed", async () => {
+    const onTabRemovedSpy = jest.spyOn(mockTracker, "onTabRemoved");
+    await extension.start();
+
+    await onTabRemovedListener(tab.id);
+
+    expect(onTabRemovedSpy).toHaveBeenCalled();
+    expect(onTabRemovedSpy.mock.calls[0]).toEqual([tab.id]);
   });
 
   it("should try to mute a tab when the URL changes", async () => {

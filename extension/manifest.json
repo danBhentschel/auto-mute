@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AutoMute",
   "description": "Automatically mutes each new tab the instant it is opened.",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "permissions": ["tabs", "storage", "notifications", "offscreen"],
   "background": {
     "service_worker": "service_worker.js",
