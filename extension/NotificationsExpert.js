@@ -1,6 +1,6 @@
 class NotificationsExpert {
   static get CURRENT_VERSION() {
-    return 30004;
+    return 30100;
   }
   #chrome;
 
@@ -70,6 +70,16 @@ class NotificationsExpert {
         "Whitelist and blacklist are now just one list. Regular expressions are now supported. Click the speaker button to explore.";
       await this.#chrome.notifications.create(
         "new-features-3.0",
+        notificationOptions
+      );
+    }
+
+    if (items.newFeatures < 30100) {
+      notificationOptions.title = "New features in AutoMute 3.1";
+      notificationOptions.message =
+        'The icon behavior can now be customized in the options page. Click the speaker button and select "AutoMute options" to explore.';
+      await this.#chrome.notifications.create(
+        "new-features-3.1",
         notificationOptions
       );
     }

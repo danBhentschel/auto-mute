@@ -3057,8 +3057,8 @@ google.com",
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
-    it("should not show any notifications when upgrading from 3.0", async () => {
-      storage.newFeatures = 30000;
+    it("should not show any notifications when upgrading from 3.1", async () => {
+      storage.newFeatures = 30100;
       await startExtension();
 
       await timeoutListener();
@@ -3067,6 +3067,25 @@ google.com",
       await new Promise(process.nextTick);
 
       expect(mockChrome.notifications.create).not.toHaveBeenCalled();
+      expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
+    });
+
+    it("should show an update notification when upgrading from 3.0", async () => {
+      storage.newFeatures = 30000;
+      await startExtension();
+
+      let options;
+      mockChrome.notifications.create.mockImplementation((_id, opts) => {
+        options = opts;
+      });
+
+      await timeoutListener();
+
+      // Wait for the events to be processed
+      await new Promise(process.nextTick);
+
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(1);
+      expect(options.title).toBe("New features in AutoMute 3.1");
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
@@ -3084,8 +3103,7 @@ google.com",
       // Wait for the events to be processed
       await new Promise(process.nextTick);
 
-      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(1);
-      expect(options.title).toBe("New features in AutoMute 3.0");
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(2);
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
@@ -3103,7 +3121,7 @@ google.com",
       // Wait for the events to be processed
       await new Promise(process.nextTick);
 
-      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(2);
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(3);
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
@@ -3121,7 +3139,7 @@ google.com",
       // Wait for the events to be processed
       await new Promise(process.nextTick);
 
-      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(3);
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(4);
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
   });
