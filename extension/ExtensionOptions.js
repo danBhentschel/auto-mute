@@ -34,6 +34,22 @@ class ExtensionOptions {
   }
 
   /**
+   * @returns {Promise<string>}
+   */
+  async getIconType() {
+    return (await this.#chrome.storage.sync.get({ iconType: "static" }))
+      .iconType;
+  }
+
+  /**
+   * @returns {Promise<string>}
+   */
+  async getIconColor() {
+    return (await this.#chrome.storage.sync.get({ iconColor: "system" }))
+      .iconColor;
+  }
+
+  /**
    * @param {string[]} list
    * @returns {Promise<void>}
    */

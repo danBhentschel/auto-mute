@@ -42,6 +42,20 @@
           color: #e0e0e0; /* Dark theme text color */
         }
       }
+
+      .option-section {
+        padding-top: 12px;
+        padding-bottom: 12px;
+      }
+
+      .indented {
+        padding-left: 20px;
+      }
+
+      .color-option {
+        display: inline-block;
+        margin-right: 15px;
+      }
     </style>
     <script src="options.js"></script>
   </head>
@@ -53,14 +67,14 @@
       </label>
     </div>
 
-    <div style="padding-top: 12px; padding-bottom: 12px">
+    <div class="option-section">
       <span>
         When the toggle is set to "allow mode," only the pages you list will
         play sound while all other pages are muted. When it's set to "block
         mode," only the pages you list will be muted while all others play
         sound.</span
       >
-      <div style="padding-left: 20px">
+      <div class="indented">
         <label for="radio-allow">
           <input
             type="radio"
@@ -85,7 +99,84 @@
 
     <hr />
 
-    <div style="padding-top: 12px; padding-bottom: 12px">
+    <div class="option-section">
+      <div>
+        <span>Extension Icon Preferences:</span>
+      </div>
+      <div class="indented">
+        <div>
+          <label for="radio-static-icon">
+            <input
+              type="radio"
+              name="icon-type"
+              id="radio-static-icon"
+              value="static"
+              checked
+            />
+            Use static extension icon</label
+          >
+        </div>
+        <div>
+          <label for="radio-context-icon">
+            <input
+              type="radio"
+              name="icon-type"
+              id="radio-context-icon"
+              value="context"
+            />
+            Use context-sensitive icon</label
+          >
+        </div>
+
+        <div
+          id="icon-color-options"
+          class="indented"
+          style="margin-top: 8px; display: none"
+        >
+          <div>Icon color:</div>
+          <div style="margin-top: 5px">
+            <div class="color-option">
+              <label for="radio-black-icon">
+                <input
+                  type="radio"
+                  name="icon-color"
+                  id="radio-black-icon"
+                  value="black"
+                  checked
+                />
+                Black
+              </label>
+            </div>
+            <div class="color-option">
+              <label for="radio-white-icon">
+                <input
+                  type="radio"
+                  name="icon-color"
+                  id="radio-white-icon"
+                  value="white"
+                />
+                White
+              </label>
+            </div>
+            <div class="color-option">
+              <label for="radio-system-icon">
+                <input
+                  type="radio"
+                  name="icon-color"
+                  id="radio-system-icon"
+                  value="system"
+                />
+                System color scheme dependent
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr />
+
+    <div class="option-section">
       <div id="allow-description">
         Specify a list of URLs where <b>audio will be allowed</b>. These pages
         <b>will not be muted</b> automatically and all pages not in the list
@@ -123,10 +214,14 @@
     </div>
 
     <div
-      id="status"
-      style="position: absolute; left: 10px; bottom: 12px; color: lightgray"
-    ></div>
-    <div align="right">
+      style="
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-top: 12px;
+      "
+    >
+      <div id="status" style="color: lightgray"></div>
       <button id="save">Save</button>
     </div>
   </body>

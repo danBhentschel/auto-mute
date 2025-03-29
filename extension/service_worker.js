@@ -20,21 +20,28 @@ import IconSwitcher from "./IconSwitcher.js";
       _console
     );
 
-    const iconSwitcher = new IconSwitcher(_chrome, tabTracker, _console);
+    tabTracker.start().then(() => {
+      const iconSwitcher = new IconSwitcher(
+        _chrome,
+        tabTracker,
+        extensionOptions,
+        _console
+      );
 
-    const extension = new AutoMuteExtension(
-      _chrome,
-      extensionOptions,
-      tabTracker,
-      iconSwitcher,
-      _console
-    );
+      const extension = new AutoMuteExtension(
+        _chrome,
+        extensionOptions,
+        tabTracker,
+        iconSwitcher,
+        _console
+      );
 
-    extension.start().then(async () => {
-      await iconSwitcher.start();
+      extension.start().then(async () => {
+        await iconSwitcher.start();
 
-      const notificationsExpert = new NotificationsExpert(_chrome);
-      notificationsExpert.start();
+        const notificationsExpert = new NotificationsExpert(_chrome);
+        notificationsExpert.start();
+      });
     });
   });
 })(self.chrome, self.console);

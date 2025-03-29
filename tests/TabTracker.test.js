@@ -13,6 +13,7 @@ describe("TabTracker ->", () => {
   let mockListExpert;
   let mockLogger;
   let tabs = [];
+  let storage = {};
   const extensionId = "myExtensionId";
 
   /**
@@ -30,7 +31,32 @@ describe("TabTracker ->", () => {
     return tabs.find((t) => t.id === id).mutedInfo?.muted ?? false;
   }
 
+  async function getStorage(storageObj, values) {
+    // If values is an object, return the values of the keys in the object
+    if (typeof values === "object") {
+      const result = {};
+      for (const [key, value] of Object.entries(values)) {
+        if (!Object.prototype.hasOwnProperty.call(storageObj, key)) {
+          storageObj[key] = value;
+        }
+        result[key] = storageObj[key];
+      }
+
+      return result;
+    }
+
+    return storageObj[values];
+  }
+
+  async function setStorage(storageObj, values) {
+    for (const [key, value] of Object.entries(values)) {
+      storageObj[key] = value;
+    }
+  }
+
   beforeEach(() => {
+    storage = {};
+
     mockChrome = {
       tabs: {
         update: (tabId, updateProperties) => {
@@ -47,6 +73,16 @@ describe("TabTracker ->", () => {
       },
       runtime: {
         id: extensionId,
+      },
+      storage: {
+        session: {
+          get: async (values) => {
+            return await getStorage(storage, values);
+          },
+          set: async (values) => {
+            await setStorage(storage, values);
+          },
+        },
       },
     };
 
@@ -109,6 +145,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -123,6 +160,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -148,6 +186,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -162,6 +201,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -193,6 +233,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -207,6 +248,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -232,6 +274,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -246,6 +289,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteByApplicationLogic(tab);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -301,6 +345,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByApplicationLogic(false);
 
           expect(mockExtensionOptions.getEnabled).toHaveBeenCalled();
@@ -316,6 +361,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -342,6 +388,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByApplicationLogic(false);
 
           expect(mockExtensionOptions.getEnabled).toHaveBeenCalled();
@@ -357,6 +404,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -389,6 +437,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByApplicationLogic(false);
 
           expect(mockExtensionOptions.getEnabled).toHaveBeenCalled();
@@ -404,6 +453,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -430,6 +480,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByApplicationLogic(false);
 
           expect(mockExtensionOptions.getEnabled).toHaveBeenCalled();
@@ -445,6 +496,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteAllTabsByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -495,6 +547,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -511,6 +564,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -526,6 +580,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -542,6 +597,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -568,6 +624,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -584,6 +641,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -599,6 +657,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -615,6 +674,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(mockExtensionOptions.getEnabled).not.toHaveBeenCalled();
@@ -647,6 +707,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -662,6 +723,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -676,6 +738,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -691,6 +754,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -716,6 +780,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -731,6 +796,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -745,6 +811,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -760,6 +827,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.toggleMuteOnCurrentTabByUserRequest();
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -823,6 +891,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteOtherTabsByUserRequest();
 
           expect(getTabMuteState(tabs[0].id)).toBe(false);
@@ -848,6 +917,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteOtherTabsByUserRequest();
 
           expect(getTabMuteState(tabs[0].id)).toBe(false);
@@ -879,6 +949,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteOtherTabsByUserRequest();
 
           expect(getTabMuteState(tabs[0].id)).toBe(false);
@@ -904,6 +975,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.muteOtherTabsByUserRequest();
 
           expect(getTabMuteState(tabs[0].id)).toBe(false);
@@ -954,6 +1026,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -968,6 +1041,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -993,6 +1067,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -1007,6 +1082,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(true);
@@ -1038,6 +1114,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -1052,6 +1129,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -1077,6 +1155,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -1091,6 +1170,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.onTabReplaced(tab.id);
 
           expect(getTabMuteState(tab.id)).toBe(false);
@@ -1139,9 +1219,41 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(true);
+        });
+
+        it("should not mute the specified tab if the domain doesn't change", async () => {
+          jest.spyOn(mockListExpert, "isInList").mockResolvedValue(true);
+          jest.spyOn(mockChrome.tabs, "query").mockResolvedValue([tab]);
+
+          const tabTracker = new TabTracker(
+            mockChrome,
+            mockExtensionOptions,
+            mockListExpert,
+            mockLogger
+          );
+          tab.url = "http://www.google.com/";
+          await tabTracker.start();
+          tab.url = "http://www.youtube.com/watch?v=12345";
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
+
+          // Sanity check to ensure the tab is muted at this point
+          expect(getTabMuteState(tab.id)).toBe(true);
+
+          await tabTracker.toggleMuteOnCurrentTabByUserRequest();
+
+          // Sanity check to ensure the tab is not muted
+          expect(getTabMuteState(tab.id)).toBe(false);
+
+          // Now only change the query string
+          tab.url = "http://www.youtube.com/channel/12345?foo=bar";
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
+
+          // Should still be unmuted
+          expect(getTabMuteState(tab.id)).toBe(false);
         });
 
         it("should not mute the specified tab if the page is not in the list", async () => {
@@ -1153,7 +1265,8 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(false);
         });
@@ -1178,7 +1291,8 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(false);
         });
@@ -1192,7 +1306,8 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(true);
         });
@@ -1223,7 +1338,8 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(false);
         });
@@ -1237,7 +1353,8 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(false);
         });
@@ -1262,7 +1379,8 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(false);
         });
@@ -1276,7 +1394,8 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
-          await tabTracker.onTabUrlChanged(tab.id);
+          await tabTracker.start();
+          await tabTracker.onTabUrlChanged(tab.id, tab.url);
 
           expect(getTabMuteState(tab.id)).toBe(false);
         });
@@ -1333,6 +1452,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentPageInList();
 
           expect(mockListExpert.addOrRemoveUrlInList).toHaveBeenCalled();
@@ -1366,6 +1486,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentPageInList();
 
           expect(mockListExpert.addOrRemoveUrlInList).toHaveBeenCalled();
@@ -1404,6 +1525,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentPageInList();
 
           expect(mockListExpert.addOrRemoveUrlInList).toHaveBeenCalled();
@@ -1437,6 +1559,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentPageInList();
 
           expect(mockListExpert.addOrRemoveUrlInList).toHaveBeenCalled();
@@ -1498,6 +1621,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentDomainInList();
 
           expect(mockListExpert.addOrRemoveDomainInList).toHaveBeenCalled();
@@ -1531,6 +1655,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentDomainInList();
 
           expect(mockListExpert.addOrRemoveDomainInList).toHaveBeenCalled();
@@ -1569,6 +1694,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentDomainInList();
 
           expect(mockListExpert.addOrRemoveDomainInList).toHaveBeenCalled();
@@ -1602,6 +1728,7 @@ describe("TabTracker ->", () => {
             mockListExpert,
             mockLogger
           );
+          await tabTracker.start();
           await tabTracker.addOrRemoveCurrentDomainInList();
 
           expect(mockListExpert.addOrRemoveDomainInList).toHaveBeenCalled();
@@ -1660,6 +1787,7 @@ describe("TabTracker ->", () => {
             mockLogger
           );
 
+          await tabTracker.start();
           await tabTracker.updateSettings({
             initial: {
               enabled: false,
@@ -1697,6 +1825,7 @@ describe("TabTracker ->", () => {
             mockLogger
           );
 
+          await tabTracker.start();
           await tabTracker.updateSettings({
             initial: {
               enabled: false,
@@ -1759,6 +1888,7 @@ describe("TabTracker ->", () => {
           mockLogger
         );
 
+        await tabTracker.start();
         await tabTracker.updateSettings({
           initial: {
             enabled: true,
@@ -1821,6 +1951,7 @@ describe("TabTracker ->", () => {
             mockLogger
           );
 
+          await tabTracker.start();
           await tabTracker.updateSettings({
             initial: {
               enabled: true,
@@ -1861,6 +1992,7 @@ describe("TabTracker ->", () => {
             mockLogger
           );
 
+          await tabTracker.start();
           await tabTracker.updateSettings({
             initial: {
               enabled: true,
@@ -1925,6 +2057,7 @@ describe("TabTracker ->", () => {
             mockLogger
           );
 
+          await tabTracker.start();
           await tabTracker.updateSettings({
             initial: {
               enabled: true,
@@ -1966,6 +2099,7 @@ describe("TabTracker ->", () => {
             mockLogger
           );
 
+          await tabTracker.start();
           await tabTracker.updateSettings({
             initial: {
               enabled: true,
@@ -2029,6 +2163,7 @@ describe("TabTracker ->", () => {
           mockLogger
         );
 
+        await tabTracker.start();
         await tabTracker.updateSettings({
           initial: {
             enabled: true,
@@ -2091,6 +2226,7 @@ describe("TabTracker ->", () => {
           mockLogger
         );
 
+        await tabTracker.start();
         await tabTracker.updateSettings({
           initial: {
             enabled: true,

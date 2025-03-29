@@ -76,6 +76,15 @@ class AutoMuteExtension {
       }
     });
 
+    this.#chrome.tabs.onRemoved.addListener(async (tabId) => {
+      try {
+        this.#logger.log(tabId + ": removed");
+        await this.#tabTracker.onTabRemoved(tabId);
+      } catch (e) {
+        this.#logger.error(e);
+      }
+    });
+
     this.#chrome.windows.onFocusChanged.addListener(async () => {
       try {
         this.#logger.log("Window focus changed");
