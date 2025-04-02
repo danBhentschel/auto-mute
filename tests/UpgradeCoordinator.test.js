@@ -43,7 +43,9 @@ describe("upgrade()", () => {
         },
       },
     };
-    const logger = jest.fn();
+    const logger = {
+      log: jest.fn(),
+    };
     const upgradeCoordinator = new UpgradeCoordinator(chrome, logger);
 
     await upgradeCoordinator.upgrade();
@@ -94,7 +96,9 @@ google.com",
         },
       },
     };
-    const logger = jest.fn();
+    const logger = {
+      log: jest.fn(),
+    };
     const upgradeCoordinator = new UpgradeCoordinator(chrome, logger);
 
     await upgradeCoordinator.upgrade();

@@ -32,9 +32,16 @@ class TabTracker {
       return;
     }
 
-    const tabState = await this.#chrome.storage.session.get({
-      tabState: {},
-    });
+    const tabState = (
+      await this.#chrome.storage.session.get({
+        tabState: {},
+      })
+    ).tabState;
+    if (Object.keys(tabState).length > 0) {
+      this.#logger.log("Tab state already initialized, skipping...");
+      return;
+    }
+
     // Populate the tabState map with current tab information
     for (const tab of tabs) {
       if (tab.id && tab.url) {

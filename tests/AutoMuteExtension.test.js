@@ -8,6 +8,7 @@ it("should instantiate AutoMuteExtension", () => {
 
 describe("AutoMuteExtension ->", () => {
   let mockChrome;
+  let mockCoordinator;
   let mockOptions;
   let mockTracker;
   let mockSwitcher;
@@ -24,8 +25,11 @@ describe("AutoMuteExtension ->", () => {
   let onMessageListener;
 
   let tab;
+  let shouldMuteAllTabs;
 
   beforeEach(() => {
+    shouldMuteAllTabs = true;
+
     tab = {
       id: 42,
       url: "http://www.youtube.com",
@@ -63,6 +67,14 @@ describe("AutoMuteExtension ->", () => {
       windows: {
         onFocusChanged: {
           addListener: () => {},
+        },
+      },
+      storage: {
+        session: {
+          set: async () => {},
+          get: async () => {
+            return { shouldMuteAllTabs };
+          },
         },
       },
     };
@@ -116,6 +128,10 @@ describe("AutoMuteExtension ->", () => {
         onMessageListener = listener;
       });
 
+    mockCoordinator = {
+      upgrade: async () => {},
+    };
+
     mockOptions = {
       getUsingAllowAudioList: async () => {},
     };
@@ -135,11 +151,13 @@ describe("AutoMuteExtension ->", () => {
       isCurrentTabInList: async () => {},
       isDomainOfCurrentTabInList: async () => {},
       updateSettings: async () => {},
+      start: async () => {},
     };
 
     mockSwitcher = {
       setSystemColorScheme: async () => {},
       updateIcon: async () => {},
+      start: async () => {},
     };
 
     mockLogger = {
@@ -149,6 +167,7 @@ describe("AutoMuteExtension ->", () => {
 
     extension = new AutoMuteExtension(
       mockChrome,
+      mockCoordinator,
       mockOptions,
       mockTracker,
       mockSwitcher,
@@ -162,9 +181,23 @@ describe("AutoMuteExtension ->", () => {
       mockTracker,
       "muteAllTabsByApplicationLogic"
     );
-    await extension.start();
+    extension.start();
+    await new Promise(process.nextTick); // Wait for promises to resolve
 
     expect(muteAllTabsSpy).toHaveBeenCalled();
+  });
+
+  it("should not try to mute all tabs on start if storage is set", async () => {
+    shouldMuteAllTabs = false;
+
+    const muteAllTabsSpy = jest.spyOn(
+      mockTracker,
+      "muteAllTabsByApplicationLogic"
+    );
+    extension.start();
+    await new Promise(process.nextTick); // Wait for promises to resolve
+
+    expect(muteAllTabsSpy).not.toHaveBeenCalled();
   });
 
   it("should try to mute any newly created tab", async () => {
@@ -172,7 +205,7 @@ describe("AutoMuteExtension ->", () => {
       mockTracker,
       "muteByApplicationLogic"
     );
-    await extension.start();
+    extension.start();
 
     await onTabCreatedListener(tab);
 
@@ -181,7 +214,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for any newly created tab", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onTabCreatedListener(tab);
@@ -191,7 +224,7 @@ describe("AutoMuteExtension ->", () => {
 
   it("should call TabTracker.onTabReplaced when a tab is replaced", async () => {
     const onTabReplacedSpy = jest.spyOn(mockTracker, "onTabReplaced");
-    await extension.start();
+    extension.start();
 
     await onTabReplacedListener(42, 43);
 
@@ -200,7 +233,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon when a tab is replaced", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onTabReplacedListener(42, 43);
@@ -210,7 +243,7 @@ describe("AutoMuteExtension ->", () => {
 
   it("should call TabTracker.onTabRemoved when a tab is removed", async () => {
     const onTabRemovedSpy = jest.spyOn(mockTracker, "onTabRemoved");
-    await extension.start();
+    extension.start();
 
     await onTabRemovedListener(tab.id);
 
@@ -220,7 +253,7 @@ describe("AutoMuteExtension ->", () => {
 
   it("should try to mute a tab when the URL changes", async () => {
     const onTabUrlChangedSpy = jest.spyOn(mockTracker, "onTabUrlChanged");
-    await extension.start();
+    extension.start();
 
     await onTabUpdatedListener(tab.id, { url: tab.url });
 
@@ -229,7 +262,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon when the URL changes", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onTabUpdatedListener(tab.id, { url: tab.url });
@@ -238,7 +271,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon when the activated tab changes", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onTabActivatedListener();
@@ -247,7 +280,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon when the focused window changes", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onWindowFocusChangedListener();
@@ -256,7 +289,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should apply mute rules to the current tab for apply-mute command", async () => {
-    await extension.start();
+    extension.start();
 
     const applyMuteSpy = jest.spyOn(mockTracker, "applyMute");
     await onCommandListener("apply-mute");
@@ -265,7 +298,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for apply-mute command", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onCommandListener("apply-mute");
@@ -274,7 +307,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should mute all tabs for mute-all command", async () => {
-    await extension.start();
+    extension.start();
 
     const muteAllSpy = jest.spyOn(mockTracker, "muteAllTabsByUserRequest");
     await onCommandListener("mute-all");
@@ -283,7 +316,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for mute-all command", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onCommandListener("mute-all");
@@ -292,7 +325,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should mute other tabs for mute-other command", async () => {
-    await extension.start();
+    extension.start();
 
     const muteOtherSpy = jest.spyOn(mockTracker, "muteOtherTabsByUserRequest");
     await onCommandListener("mute-other");
@@ -301,7 +334,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for mute-other command", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onCommandListener("mute-other");
@@ -310,7 +343,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the list for list-page command", async () => {
-    await extension.start();
+    extension.start();
 
     const listPageSpy = jest.spyOn(mockTracker, "addOrRemoveCurrentPageInList");
     await onCommandListener("list-page");
@@ -319,7 +352,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for list-page command", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onCommandListener("list-page");
@@ -328,7 +361,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the list for list-domain command", async () => {
-    await extension.start();
+    extension.start();
 
     const listDomainSpy = jest.spyOn(
       mockTracker,
@@ -340,7 +373,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for list-domain command", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     await onCommandListener("list-domain");
@@ -349,7 +382,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should apply mute rules to the current tab for apply-mute message", async () => {
-    await extension.start();
+    extension.start();
 
     const applyMuteSpy = jest.spyOn(mockTracker, "applyMute");
     const result = onMessageListener({ command: "apply-mute" });
@@ -362,7 +395,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for apply-mute message", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     onMessageListener({ command: "apply-mute" });
@@ -374,7 +407,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should mute all tabs for mute-all message", async () => {
-    await extension.start();
+    extension.start();
 
     const muteAllSpy = jest.spyOn(mockTracker, "muteAllTabsByUserRequest");
     const result = onMessageListener({ command: "mute-all" });
@@ -387,7 +420,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for mute-all message", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     onMessageListener({ command: "mute-all" });
@@ -399,7 +432,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should mute other tabs for mute-other message", async () => {
-    await extension.start();
+    extension.start();
 
     const muteOtherSpy = jest.spyOn(mockTracker, "muteOtherTabsByUserRequest");
     const result = onMessageListener({ command: "mute-other" });
@@ -412,7 +445,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for mute-other message", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     onMessageListener({ command: "mute-other" });
@@ -424,7 +457,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the list for list-page message", async () => {
-    await extension.start();
+    extension.start();
 
     const listPageSpy = jest.spyOn(mockTracker, "addOrRemoveCurrentPageInList");
     const result = onMessageListener({ command: "list-page" });
@@ -437,7 +470,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for list-page message", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     onMessageListener({ command: "list-page" });
@@ -449,7 +482,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the list for list-domain message", async () => {
-    await extension.start();
+    extension.start();
 
     const listDomainSpy = jest.spyOn(
       mockTracker,
@@ -465,7 +498,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the icon for list-domain message", async () => {
-    await extension.start();
+    extension.start();
 
     const updateIconSpy = jest.spyOn(mockSwitcher, "updateIcon");
     onMessageListener("list-domain");
@@ -480,7 +513,7 @@ describe("AutoMuteExtension ->", () => {
     const isCurrentTabMutedSpy = jest
       .spyOn(mockTracker, "isCurrentTabMuted")
       .mockResolvedValue(true);
-    await extension.start();
+    extension.start();
 
     let isMuted = false;
     const result = onMessageListener(
@@ -503,7 +536,7 @@ describe("AutoMuteExtension ->", () => {
     const getUsingAllowAudioListSpy = jest
       .spyOn(mockOptions, "getUsingAllowAudioList")
       .mockResolvedValue(true);
-    await extension.start();
+    extension.start();
 
     let isAllowList = false;
     const result = onMessageListener(
@@ -526,7 +559,7 @@ describe("AutoMuteExtension ->", () => {
     const isPageListedSpy = jest
       .spyOn(mockTracker, "isCurrentTabInList")
       .mockResolvedValue(true);
-    await extension.start();
+    extension.start();
 
     let isPageListed = false;
     const result = onMessageListener(
@@ -549,7 +582,7 @@ describe("AutoMuteExtension ->", () => {
     const isDomainListedSpy = jest
       .spyOn(mockTracker, "isDomainOfCurrentTabInList")
       .mockResolvedValue(true);
-    await extension.start();
+    extension.start();
 
     let isDomainListed = false;
     const result = onMessageListener(
@@ -569,7 +602,7 @@ describe("AutoMuteExtension ->", () => {
   });
 
   it("should update the settings for update-settings message", async () => {
-    await extension.start();
+    extension.start();
 
     const updateSettingsSpy = jest.spyOn(mockTracker, "updateSettings");
     const result = onMessageListener({ command: "update-settings" });
@@ -583,7 +616,7 @@ describe("AutoMuteExtension ->", () => {
 
   it("should respond properly to a change-color-scheme message", async () => {
     jest.spyOn(mockSwitcher, "setSystemColorScheme").mockResolvedValue("dark");
-    await extension.start();
+    extension.start();
 
     let systemColorScheme = "unset";
     const result = onMessageListener(

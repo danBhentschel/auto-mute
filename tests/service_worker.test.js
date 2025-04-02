@@ -182,9 +182,9 @@ describe("service_worker.js", () => {
     offscreen: {
       hasDocument: () => Promise.resolve(offscreenDocumentLoaded),
       createDocument: async () => {
-        await import("../extension/offscreen.js");
+        // We don't load the document here. We will load it in the test
+        // if we need to.
         offscreenDocumentLoaded = true;
-        await new Promise(process.nextTick);
       },
     },
     action: {
@@ -208,11 +208,14 @@ describe("service_worker.js", () => {
   };
 
   async function startExtension() {
-    await import("../extension/service_worker.js");
+    const { extension } = await import("../extension/service_worker.js");
     // Wait for everything in the service worker to settle
-    await new Promise(process.nextTick);
-    // Do it again to get newly queued events
-    await new Promise(process.nextTick);
+    await extension.__forTests_getInitPromise();
+
+    if (offscreenDocumentLoaded) {
+      await import("../extension/offscreen.js");
+      await new Promise(process.nextTick);
+    }
   }
 
   async function loadBrowserAction() {
@@ -308,6 +311,8 @@ describe("service_worker.js", () => {
 
   afterEach(() => {
     storage = {};
+    localStorage = {};
+    sessionStorage = {};
     tabs = [];
     colorScheme = "light";
     offscreenDocumentLoaded = false;
@@ -336,7 +341,7 @@ describe("service_worker.js", () => {
 
   it("should start the extension", async () => {
     await startExtension();
-    expect(logger.log).toHaveBeenCalled();
+    expect(logger.log).toHaveBeenCalledWith("Extension started");
   });
 
   it("should upgrade from an old extension version", async () => {

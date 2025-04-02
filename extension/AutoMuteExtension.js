@@ -1,5 +1,7 @@
 class AutoMuteExtension {
   #chrome;
+  /** @member {UpgradeCoordinator} */
+  #upgradeCoordinator;
   /** @member {ExtensionOptions} */
   #extensionOptions;
   /** @member {TabTracker} */
@@ -9,8 +11,13 @@ class AutoMuteExtension {
   /** @member {Object} */
   #logger;
 
+  /** @member {Promise<void>} */
+  #initPromise;
+  #resolveInit;
+
   /**
    * @param {Object} chromeInstance
+   * @param {UpgradeCoordinator} upgradeCoordinator
    * @param {ExtensionOptions} extensionOptions
    * @param {TabTracker} tabTracker
    * @param {IconSwitcher} iconSwitcher
@@ -18,23 +25,64 @@ class AutoMuteExtension {
    */
   constructor(
     chromeInstance,
+    upgradeCoordinator,
     extensionOptions,
     tabTracker,
     iconSwitcher,
     logger
   ) {
     this.#chrome = chromeInstance;
+    this.#upgradeCoordinator = upgradeCoordinator;
     this.#extensionOptions = extensionOptions;
     this.#tabTracker = tabTracker;
     this.#iconSwitcher = iconSwitcher;
     this.#logger = logger;
+    this.#initPromise = new Promise((resolve) => {
+      this.#resolveInit = resolve;
+    });
   }
 
-  async start() {
+  /**
+   * @returns {Promise<void>}
+   */
+  __forTests_getInitPromise() {
+    return this.#initPromise;
+  }
+
+  start() {
     this.#logger.log("Starting extension");
+
+    // Start all async operations in the proper order and then
+    // resolve the init promise when all of them are done.
+    (async () => {
+      await this.#upgradeCoordinator.upgrade();
+      await this.#tabTracker.start();
+      await this.#iconSwitcher.start();
+
+      // Only run this the first time the service worker is started.
+      const shouldMuteAllTabs = (
+        await this.#chrome.storage.session.get({
+          shouldMuteAllTabs: true,
+        })
+      ).shouldMuteAllTabs;
+
+      if (shouldMuteAllTabs) {
+        await this.#tabTracker.muteAllTabsByApplicationLogic();
+        await this.#chrome.storage.session.set({ shouldMuteAllTabs: false });
+      }
+
+      await this.#iconSwitcher.updateIcon();
+
+      this.#logger.log("Extension started");
+
+      // Resolve the init promise to indicate that the extension is ready.
+      this.#resolveInit();
+    })();
 
     this.#chrome.tabs.onCreated.addListener(async (tab) => {
       try {
+        await this.#initPromise; // Wait for the init promise to be resolved
+
         this.#logger.log(tab.id + ": created");
         await this.#tabTracker.muteByApplicationLogic(tab);
         await this.#iconSwitcher.updateIcon();
@@ -45,6 +93,8 @@ class AutoMuteExtension {
 
     this.#chrome.tabs.onReplaced.addListener(
       async (addedTabId, removedTabId) => {
+        await this.#initPromise; // Wait for the init promise to be resolved
+
         try {
           this.#logger.log(removedTabId + ": replaced -> " + addedTabId);
           await this.#tabTracker.onTabReplaced(addedTabId, removedTabId);
@@ -56,6 +106,8 @@ class AutoMuteExtension {
     );
 
     this.#chrome.tabs.onUpdated.addListener(async (tabId, changeInfo) => {
+      await this.#initPromise; // Wait for the init promise to be resolved
+
       try {
         if (changeInfo.url) {
           this.#logger.log(tabId + ": updated -> " + changeInfo.url);
@@ -68,6 +120,8 @@ class AutoMuteExtension {
     });
 
     this.#chrome.tabs.onActivated.addListener(async () => {
+      await this.#initPromise; // Wait for the init promise to be resolved
+
       try {
         this.#logger.log("Tab activated");
         await this.#iconSwitcher.updateIcon();
@@ -77,6 +131,8 @@ class AutoMuteExtension {
     });
 
     this.#chrome.tabs.onRemoved.addListener(async (tabId) => {
+      await this.#initPromise; // Wait for the init promise to be resolved
+
       try {
         this.#logger.log(tabId + ": removed");
         await this.#tabTracker.onTabRemoved(tabId);
@@ -86,6 +142,8 @@ class AutoMuteExtension {
     });
 
     this.#chrome.windows.onFocusChanged.addListener(async () => {
+      await this.#initPromise; // Wait for the init promise to be resolved
+
       try {
         this.#logger.log("Window focus changed");
         await this.#iconSwitcher.updateIcon();
@@ -95,6 +153,8 @@ class AutoMuteExtension {
     });
 
     this.#chrome.commands.onCommand.addListener(async (command) => {
+      await this.#initPromise; // Wait for the init promise to be resolved
+
       try {
         this.#logger.log(`Command: ${command}`);
         await this.#handleCommand(command);
@@ -117,8 +177,6 @@ class AutoMuteExtension {
         }
       }
     );
-
-    await this.#tabTracker.muteAllTabsByApplicationLogic();
   }
 
   /**
@@ -139,72 +197,83 @@ class AutoMuteExtension {
   #handleMessage(command, data, sendResponse) {
     switch (command) {
       case "query-current-muted":
-        this.#tabTracker
-          .isCurrentTabMuted()
-          .then((muted) => {
+        (async () => {
+          await this.#initPromise; // Wait for the init promise to be resolved
+
+          try {
+            const muted = await this.#tabTracker.isCurrentTabMuted();
             sendResponse({ muted });
-          })
-          .catch((e) => {
+          } catch (e) {
             this.#logger.error(e);
             sendResponse({});
-          });
+          }
+        })();
         return true;
 
       case "query-using-should-allow-list":
-        this.#extensionOptions
-          .getUsingAllowAudioList()
-          .then((using) => {
+        (async () => {
+          await this.#initPromise; // Wait for the init promise to be resolved
+
+          try {
+            const using = await this.#extensionOptions.getUsingAllowAudioList();
             sendResponse({ usingAllowAudioList: using });
-          })
-          .catch((e) => {
+          } catch (e) {
             this.#logger.error(e);
             sendResponse({});
-          });
+          }
+        })();
         return true;
 
       case "query-page-listed":
-        this.#tabTracker
-          .isCurrentTabInList()
-          .then((listed) => {
+        (async () => {
+          await this.#initPromise; // Wait for the init promise to be resolved
+
+          try {
+            const listed = await this.#tabTracker.isCurrentTabInList();
             sendResponse({ listed });
-          })
-          .catch((e) => {
+          } catch (e) {
             this.#logger.error(e);
             sendResponse({});
-          });
+          }
+        })();
         return true;
 
       case "query-domain-listed":
-        this.#tabTracker
-          .isDomainOfCurrentTabInList()
-          .then((listed) => {
+        (async () => {
+          await this.#initPromise; // Wait for the init promise to be resolved
+
+          try {
+            const listed = await this.#tabTracker.isDomainOfCurrentTabInList();
             sendResponse({ listed });
-          })
-          .catch((e) => {
+          } catch (e) {
             this.#logger.error(e);
             sendResponse({});
-          });
+          }
+        })();
         return true;
 
       case "update-settings":
-        this.#tabTracker.updateSettings(data).then(() => {
-          this.#iconSwitcher.updateIcon();
-        });
-        break;
+        (async () => {
+          await this.#initPromise; // Wait for the init promise to be resolved
+          await this.#tabTracker.updateSettings(data);
+          await this.#iconSwitcher.updateIcon();
+        })();
+        return false;
 
       case "change-color-scheme":
-        this.#iconSwitcher
-          .setSystemColorScheme(data.scheme)
-          .then((systemColorScheme) => {
-            sendResponse({ systemColorScheme });
-          });
+        (async () => {
+          await this.#initPromise; // Wait for the init promise to be resolved
+
+          const systemColorScheme =
+            await this.#iconSwitcher.setSystemColorScheme(data.scheme);
+          sendResponse({ systemColorScheme });
+        })();
         return true;
 
       default:
         this.#handleCommand(command);
+        return false;
     }
-
-    return false;
   }
 
   /**
@@ -212,6 +281,8 @@ class AutoMuteExtension {
    * @returns {Promise<void>}
    */
   async #handleCommand(command) {
+    await this.#initPromise; // Wait for the init promise to be resolved
+
     switch (command) {
       case "apply-mute":
         await this.#tabTracker.applyMute();

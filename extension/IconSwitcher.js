@@ -22,13 +22,13 @@ class IconSwitcher {
     this.#options = options;
     this.#logger = logger;
     this.#systemColorScheme = "unset";
-    this.#getSystemColorScheme();
   }
 
   /**
    * @returns {Promise<void>}
    */
   async start() {
+    await this.#getSystemColorScheme();
     if (!(await this.#chrome.offscreen.hasDocument())) {
       this.#logger.log("Creating offscreen document");
       await this.#chrome.offscreen.createDocument({
@@ -36,6 +36,7 @@ class IconSwitcher {
         reasons: ["MATCH_MEDIA"],
         justification: "Detect system color scheme",
       });
+      this.#logger.log("Offscreen document created");
     }
   }
 
