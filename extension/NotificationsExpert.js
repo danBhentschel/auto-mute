@@ -1,6 +1,6 @@
 class NotificationsExpert {
   static get CURRENT_VERSION() {
-    return 30100;
+    return 30101;
   }
   #chrome;
 
@@ -11,7 +11,7 @@ class NotificationsExpert {
     this.#chrome = chromeInstance;
   }
 
-  async start() {
+  start() {
     // Run after 3 seconds to allow the extension to load
     setTimeout(() => {
       this.#run();
