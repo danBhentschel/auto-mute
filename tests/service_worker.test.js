@@ -3178,4 +3178,53 @@ google.com",
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
   });
+
+  // I don't know how we get into this situation, but it happens
+  // and we need to handle it gracefully.
+  describe("invalid options", () => {
+    it("should gracefully handle wrong data type in `enabled`", async () => {
+      storage.enabled = "not a boolean";
+
+      tabs = [
+        { id: 1, url: "https://www.youtube.com", mutedInfo: { muted: false } },
+        { id: 2, url: "https://www.google.com", mutedInfo: { muted: false } },
+        { id: 3, url: "https://www.facebook.com", mutedInfo: { muted: false } },
+      ];
+      await startExtension();
+
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+      expect(tabs[1].mutedInfo.muted).toBe(true);
+      expect(tabs[2].mutedInfo.muted).toBe(true);
+    });
+
+    it("should gracefully handle wrong data type in `usingAllowList`", async () => {
+      storage.usingAllowList = "not a boolean";
+
+      tabs = [
+        { id: 1, url: "https://www.youtube.com", mutedInfo: { muted: false } },
+        { id: 2, url: "https://www.google.com", mutedInfo: { muted: false } },
+        { id: 3, url: "https://www.facebook.com", mutedInfo: { muted: false } },
+      ];
+      await startExtension();
+
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+      expect(tabs[1].mutedInfo.muted).toBe(true);
+      expect(tabs[2].mutedInfo.muted).toBe(true);
+    });
+
+    it("should gracefully handle wrong data type in `allowOrBlockList`", async () => {
+      storage.allowOrBlockList = 12345;
+
+      tabs = [
+        { id: 1, url: "https://www.youtube.com", mutedInfo: { muted: false } },
+        { id: 2, url: "https://www.google.com", mutedInfo: { muted: false } },
+        { id: 3, url: "https://www.facebook.com", mutedInfo: { muted: false } },
+      ];
+      await startExtension();
+
+      expect(tabs[0].mutedInfo.muted).toBe(true);
+      expect(tabs[1].mutedInfo.muted).toBe(true);
+      expect(tabs[2].mutedInfo.muted).toBe(true);
+    });
+  });
 });

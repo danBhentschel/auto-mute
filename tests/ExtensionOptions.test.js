@@ -44,7 +44,13 @@ describe("ExtensionOptions ->", () => {
       return Promise.resolve();
     });
 
-    options = new ExtensionOptions(mockChrome);
+    const mockConsole = {
+      log: jest.fn(),
+      error: jest.fn(),
+      warn: jest.fn(),
+    };
+
+    options = new ExtensionOptions(mockChrome, mockConsole);
   });
 
   afterEach(() => {
