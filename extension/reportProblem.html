@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Report a Problem</title>
+    <style>
+      /* Base styles for light mode */
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 20px;
+        background-color: #f5f5f5;
+        color: #000;
+      }
+
+      h1 {
+        text-align: center;
+      }
+
+      .container {
+        max-width: 800px;
+        margin: auto;
+        background: #fff;
+        padding: 20px;
+        border-radius: 8px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+      }
+
+      .debug-container {
+        position: relative; /* Container for debug info and button */
+        margin-top: 20px;
+      }
+
+      #debug-info {
+        width: 100%;
+        height: 300px;
+        padding: 10px;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+        background-color: #fafafa;
+        overflow: auto;
+        white-space: pre; /* Changed from pre-wrap to pre */
+        font-family: monospace;
+        font-size: 12px;
+        box-sizing: border-box; /* Include padding in width calculation */
+      }
+
+      .instructions {
+        margin-top: 20px;
+        font-size: 16px;
+      }
+
+      .copy-button {
+        position: absolute;
+        top: 10px;
+        right: 30px; /* Increased from 10px to avoid scrollbar overlap */
+        background-color: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        padding: 8px 12px;
+        font-size: 14px;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        z-index: 1;
+      }
+
+      .copy-button:hover {
+        background-color: #0056b3;
+      }
+
+      /* Responsive color scheme: Dark Mode */
+      @media (prefers-color-scheme: dark) {
+        body {
+          background-color: #1e1e1e;
+          color: #f5f5f5;
+        }
+
+        .container {
+          background: #2d2d2d;
+          box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+        }
+
+        #debug-info {
+          background-color: #3a3a3a;
+          border: 1px solid #555;
+          color: #f5f5f5;
+        }
+
+        a {
+          color: #ccc;
+        }
+
+        .copy-button {
+          background-color: #4d4d4d; /* More subtle gray color */
+          color: #ffffff;
+          box-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+        }
+
+        .copy-button:hover {
+          background-color: #666666; /* Slightly lighter on hover */
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Report a Problem</h1>
+      <p class="instructions">
+        Please copy the debug information provided below and either email it,
+        along with a description of the problem that you have observed, to
+        <a href="mailto:dan@hentschels.com">dan@hentschels.com</a> or if you
+        prefer, you can create a GitHub issue at
+        <a
+          href="https://github.com/danBhentschel/auto-mute/issues"
+          target="_blank"
+          >https://github.com/danBhentschel/auto-mute/issues</a
+        >.
+      </p>
+      <div class="debug-container">
+        <button class="copy-button" id="copy-btn" title="Copy debug info">
+          Copy
+        </button>
+        <div id="debug-info">Loading debug info...</div>
+      </div>
+    </div>
+
+    <script src="reportProblem.js"></script>
+  </body>
+</html>

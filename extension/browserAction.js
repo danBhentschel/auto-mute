@@ -35,6 +35,13 @@
     await _chrome.tabs.create({ url: url });
   }
 
+  async function reportProblem() {
+    window.close();
+    await _chrome.tabs.create({
+      url: "reportProblem.html",
+    });
+  }
+
   document.addEventListener("DOMContentLoaded", async () => {
     document
       .getElementById("autoMuteBrowserActionMuteAll")
@@ -51,6 +58,9 @@
     document
       .getElementById("autoMuteBrowserActionListDomain")
       .addEventListener("click", listDomain);
+    document
+      .getElementById("autoMuteBrowserActionReportProblem")
+      .addEventListener("click", reportProblem);
 
     if (isFirefox) {
       document.getElementById(
@@ -61,6 +71,7 @@
         .getElementById("autoMuteBrowserActionShowOptions")
         .addEventListener("click", showOptions);
     }
+
     const usingAllowListResponse = await _chrome.runtime.sendMessage({
       command: "query-using-should-allow-list",
     });

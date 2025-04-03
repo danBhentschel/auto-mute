@@ -432,6 +432,17 @@ class TabTracker {
     delete tabState[`${tabId}`];
     await this.#chrome.storage.session.set({ tabState });
   }
+
+  async getDebugInfo() {
+    const tabState = (
+      await this.#chrome.storage.session.get({
+        tabState: {},
+      })
+    ).tabState;
+    return {
+      tabState,
+    };
+  }
 }
 
 export default TabTracker;

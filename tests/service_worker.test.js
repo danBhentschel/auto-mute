@@ -16,6 +16,7 @@ describe("service_worker.js", () => {
   const extensionId = "my-extension-id";
   let colorScheme = "light";
   let offscreenDocumentLoaded = false;
+  let reportLogger;
 
   let tabOnCreatedListener = async () => {};
   let tabOnReplacedListener = async () => {};
@@ -208,7 +209,11 @@ describe("service_worker.js", () => {
   };
 
   async function startExtension() {
-    const { extension } = await import("../extension/service_worker.js");
+    const { extension, reportLogger: _reportLogger } = await import(
+      "../extension/service_worker.js"
+    );
+    reportLogger = _reportLogger;
+
     // Wait for everything in the service worker to settle
     await extension.__forTests_getInitPromise();
 
@@ -341,7 +346,14 @@ describe("service_worker.js", () => {
 
   it("should start the extension", async () => {
     await startExtension();
-    expect(logger.log).toHaveBeenCalledWith("Extension started");
+
+    // Get the log file
+    const logFile = await reportLogger.getLogBuffer();
+
+    // There should be an "Extension started" message in the log file
+    expect(
+      logFile.filter((line) => line.includes("Extension started")).length
+    ).toBe(1);
   });
 
   it("should upgrade from an old extension version", async () => {
@@ -3062,8 +3074,8 @@ google.com",
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
-    it("should not show any notifications when upgrading from 3.1", async () => {
-      storage.newFeatures = 30100;
+    it("should not show any notifications when upgrading from 3.2", async () => {
+      storage.newFeatures = 30200;
       await startExtension();
 
       await timeoutListener();
@@ -3072,6 +3084,25 @@ google.com",
       await new Promise(process.nextTick);
 
       expect(mockChrome.notifications.create).not.toHaveBeenCalled();
+      expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
+    });
+
+    it("should show an update notification when upgrading from 3.1", async () => {
+      storage.newFeatures = 30100;
+      await startExtension();
+
+      let options;
+      mockChrome.notifications.create.mockImplementation((_id, opts) => {
+        options = opts;
+      });
+
+      await timeoutListener();
+
+      // Wait for the events to be processed
+      await new Promise(process.nextTick);
+
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(1);
+      expect(options.title).toBe("New features in AutoMute 3.2");
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
@@ -3089,8 +3120,7 @@ google.com",
       // Wait for the events to be processed
       await new Promise(process.nextTick);
 
-      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(1);
-      expect(options.title).toBe("New features in AutoMute 3.1");
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(2);
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
@@ -3108,7 +3138,7 @@ google.com",
       // Wait for the events to be processed
       await new Promise(process.nextTick);
 
-      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(2);
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(3);
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
@@ -3126,7 +3156,7 @@ google.com",
       // Wait for the events to be processed
       await new Promise(process.nextTick);
 
-      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(3);
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(4);
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
 
@@ -3144,7 +3174,7 @@ google.com",
       // Wait for the events to be processed
       await new Promise(process.nextTick);
 
-      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(4);
+      expect(mockChrome.notifications.create).toHaveBeenCalledTimes(5);
       expect(storage.newFeatures).toBe(NotificationsExpert.CURRENT_VERSION);
     });
   });
