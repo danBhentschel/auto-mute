@@ -13,38 +13,42 @@ let reportLogger;
 
 (function (_chrome, _console) {
   reportLogger = new ReportLogger(_console);
-  const upgradeCoordinator = new UpgradeCoordinator(_chrome, reportLogger);
-  const extensionOptions = new ExtensionOptions(_chrome);
-  const urlMatcher = new UrlMatcher(reportLogger);
-  const listExpert = new ListExpert(extensionOptions, urlMatcher);
+  try {
+    const upgradeCoordinator = new UpgradeCoordinator(_chrome, reportLogger);
+    const extensionOptions = new ExtensionOptions(_chrome, reportLogger);
+    const urlMatcher = new UrlMatcher(reportLogger);
+    const listExpert = new ListExpert(extensionOptions, urlMatcher);
 
-  const tabTracker = new TabTracker(
-    _chrome,
-    extensionOptions,
-    listExpert,
-    reportLogger
-  );
+    const tabTracker = new TabTracker(
+      _chrome,
+      extensionOptions,
+      listExpert,
+      reportLogger
+    );
 
-  const iconSwitcher = new IconSwitcher(
-    _chrome,
-    tabTracker,
-    extensionOptions,
-    reportLogger
-  );
+    const iconSwitcher = new IconSwitcher(
+      _chrome,
+      tabTracker,
+      extensionOptions,
+      reportLogger
+    );
 
-  extension = new AutoMuteExtension(
-    _chrome,
-    upgradeCoordinator,
-    extensionOptions,
-    tabTracker,
-    iconSwitcher,
-    reportLogger
-  );
+    extension = new AutoMuteExtension(
+      _chrome,
+      upgradeCoordinator,
+      extensionOptions,
+      tabTracker,
+      iconSwitcher,
+      reportLogger
+    );
 
-  extension.start();
+    extension.start();
 
-  const notificationsExpert = new NotificationsExpert(_chrome);
-  notificationsExpert.start();
+    const notificationsExpert = new NotificationsExpert(_chrome);
+    notificationsExpert.start();
+  } catch (error) {
+    reportLogger.error(`Error in service worker: ${JSON.stringify(error)}`);
+  }
 })(self.chrome, self.console);
 
 export { extension, reportLogger };

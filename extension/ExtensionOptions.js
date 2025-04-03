@@ -1,52 +1,87 @@
 class ExtensionOptions {
   #chrome;
+  /** @member {Object} */
+  #logger;
 
   /**
    * @param {Object} chromeInstance
    */
-  constructor(chromeInstance) {
+  constructor(chromeInstance, logger) {
     this.#chrome = chromeInstance;
+    this.#logger = logger;
   }
 
   /**
    * @returns {Promise<boolean>}
    */
   async getEnabled() {
-    return (await this.#chrome.storage.sync.get({ enabled: true })).enabled;
+    const { enabled } = await this.#chrome.storage.sync.get({ enabled: true });
+    if (typeof enabled !== "boolean") {
+      this.#logger.error(`Invalid enabled: ${enabled}`);
+      return true;
+    }
+
+    return enabled;
   }
 
   /**
    * @returns {Promise<boolean>}
    */
   async getUsingAllowAudioList() {
-    return (await this.#chrome.storage.sync.get({ usingAllowList: true }))
-      .usingAllowList;
+    const { usingAllowList } = await this.#chrome.storage.sync.get({
+      usingAllowList: true,
+    });
+    if (typeof usingAllowList !== "boolean") {
+      this.#logger.error(`Invalid usingAllowList: ${usingAllowList}`);
+      return true;
+    }
+
+    return usingAllowList;
   }
 
   /**
    * @returns {Promise<string[]>}
    */
   async getAllowOrBlockAudioList() {
-    return this.#stringToListOfStrings(
-      (await this.#chrome.storage.sync.get({ allowOrBlockList: "" }))
-        .allowOrBlockList
-    );
+    const { allowOrBlockList } = await this.#chrome.storage.sync.get({
+      allowOrBlockList: "",
+    });
+    if (typeof allowOrBlockList !== "string") {
+      this.#logger.error(`Invalid allowOrBlockList: ${allowOrBlockList}`);
+      return [];
+    }
+
+    return this.#stringToListOfStrings(allowOrBlockList);
   }
 
   /**
    * @returns {Promise<string>}
    */
   async getIconType() {
-    return (await this.#chrome.storage.sync.get({ iconType: "static" }))
-      .iconType;
+    const { iconType } = await this.#chrome.storage.sync.get({
+      iconType: "static",
+    });
+    if (typeof iconType !== "string") {
+      this.#logger.error(`Invalid iconType: ${iconType}`);
+      return "static";
+    }
+
+    return iconType;
   }
 
   /**
    * @returns {Promise<string>}
    */
   async getIconColor() {
-    return (await this.#chrome.storage.sync.get({ iconColor: "system" }))
-      .iconColor;
+    const { iconColor } = await this.#chrome.storage.sync.get({
+      iconColor: "system",
+    });
+    if (typeof iconColor !== "string") {
+      this.#logger.error(`Invalid iconColor: ${iconColor}`);
+      return "system";
+    }
+
+    return iconColor;
   }
 
   /**
@@ -54,6 +89,11 @@ class ExtensionOptions {
    * @returns {Promise<void>}
    */
   async setAllowOrBlockAudioList(list) {
+    if (!Array.isArray(list)) {
+      this.#logger.error(`Invalid list: ${list}`);
+      return;
+    }
+
     await this.#chrome.storage.sync.set({
       allowOrBlockList: this.#listOfStringsToString(list),
     });
