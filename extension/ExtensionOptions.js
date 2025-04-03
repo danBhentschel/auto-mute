@@ -92,6 +92,13 @@ class ExtensionOptions {
   #listOfStringsToString(list) {
     return this.#cleanList(list).join("\n");
   }
+
+  /**
+   * @returns {Promise<Object>}
+   */
+  async getDebugInfo() {
+    return await this.#chrome.storage.sync.get(null);
+  }
 }
 
 export default ExtensionOptions;

@@ -252,6 +252,36 @@ class AutoMuteExtension {
         })();
         return true;
 
+      case "query-debug-info":
+        (async () => {
+          await this.#initPromise; // Wait for the init promise to be resolved
+
+          const tabInfo = await this.#tabTracker.getDebugInfo();
+          const iconInfo = await this.#iconSwitcher.getDebugInfo();
+          const optionsInfo = await this.#extensionOptions.getDebugInfo();
+          const logBuffer = await this.#logger.getLogBuffer();
+
+          const debugInfo = `
+Extension ID: ${this.#chrome.runtime.id}
+Version: ${this.#chrome.runtime.getManifest().version}
+
+Tab Tracker:
+${JSON.stringify(tabInfo, null, 2)}
+
+Icon Switcher:
+${JSON.stringify(iconInfo, null, 2)}
+
+Options:
+${JSON.stringify(optionsInfo, null, 2)}
+
+Log Buffer:
+${logBuffer.join("\n")}
+`;
+
+          sendResponse({ debugInfo });
+        })();
+        return true;
+
       case "update-settings":
         (async () => {
           await this.#initPromise; // Wait for the init promise to be resolved
@@ -301,6 +331,10 @@ class AutoMuteExtension {
         break;
       case "list-domain":
         await this.#tabTracker.addOrRemoveCurrentDomainInList();
+        break;
+
+      default:
+        this.#logger.warn("Unknown command: " + command);
         break;
     }
 

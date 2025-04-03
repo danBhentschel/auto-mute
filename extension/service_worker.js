@@ -6,27 +6,30 @@ import TabTracker from "./TabTracker.js";
 import AutoMuteExtension from "./AutoMuteExtension.js";
 import UpgradeCoordinator from "./UpgradeCoordinator.js";
 import IconSwitcher from "./IconSwitcher.js";
+import ReportLogger from "./ReportLogger.js";
 
 let extension;
+let reportLogger;
 
 (function (_chrome, _console) {
-  const upgradeCoordinator = new UpgradeCoordinator(_chrome, _console);
+  reportLogger = new ReportLogger(_console);
+  const upgradeCoordinator = new UpgradeCoordinator(_chrome, reportLogger);
   const extensionOptions = new ExtensionOptions(_chrome);
-  const urlMatcher = new UrlMatcher(_console);
+  const urlMatcher = new UrlMatcher(reportLogger);
   const listExpert = new ListExpert(extensionOptions, urlMatcher);
 
   const tabTracker = new TabTracker(
     _chrome,
     extensionOptions,
     listExpert,
-    _console
+    reportLogger
   );
 
   const iconSwitcher = new IconSwitcher(
     _chrome,
     tabTracker,
     extensionOptions,
-    _console
+    reportLogger
   );
 
   extension = new AutoMuteExtension(
@@ -35,7 +38,7 @@ let extension;
     extensionOptions,
     tabTracker,
     iconSwitcher,
-    _console
+    reportLogger
   );
 
   extension.start();
@@ -44,4 +47,4 @@ let extension;
   notificationsExpert.start();
 })(self.chrome, self.console);
 
-export { extension };
+export { extension, reportLogger };

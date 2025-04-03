@@ -1,6 +1,6 @@
 class NotificationsExpert {
   static get CURRENT_VERSION() {
-    return 30101;
+    return 30200;
   }
   #chrome;
 
@@ -82,6 +82,16 @@ class NotificationsExpert {
         "new-features-3.1",
         notificationOptions
       );
+    }
+
+    if (items.newFeatures < 30200) {
+      notificationOptions.title = "New features in AutoMute 3.2";
+      (notificationOptions.message =
+        'You can now use the "Report a problem" menu item to report issues.'),
+        await this.#chrome.notifications.create(
+          "new-features-3.2",
+          notificationOptions
+        );
     }
 
     await this.#setCurrentVersion();

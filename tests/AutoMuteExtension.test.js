@@ -163,6 +163,7 @@ describe("AutoMuteExtension ->", () => {
     mockLogger = {
       log: () => {},
       error: () => {},
+      warn: () => {},
     };
 
     extension = new AutoMuteExtension(

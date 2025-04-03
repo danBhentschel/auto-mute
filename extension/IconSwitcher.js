@@ -127,6 +127,17 @@ class IconSwitcher {
       path,
     });
   }
+
+  /**
+   * @returns {Promise<Object>}
+   */
+  async getDebugInfo() {
+    const systemColorScheme = await this.#getSystemColorScheme();
+
+    return {
+      systemColorScheme,
+    };
+  }
 }
 
 export default IconSwitcher;
