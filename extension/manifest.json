@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "AutoMute",
   "description": "Automatically mutes each new tab the instant it is opened.",
-  "version": "3.2.1",
+  "version": "3.2.2",
   "permissions": ["tabs", "storage", "notifications", "offscreen"],
   "background": {
     "service_worker": "service_worker.js",
@@ -24,7 +24,7 @@
       "suggested_key": {
         "default": "Alt+Shift+M"
       },
-      "description": "Mute current tab"
+      "description": "Toggle mute current tab"
     },
     "mute-other": {
       "suggested_key": {
